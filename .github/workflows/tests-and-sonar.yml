@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   test-generator:
-    name: JavaScript/TypeScript tests and coverage (${{ env.GENERATOR_PROJECT_DIR }})
+    name: JavaScript/TypeScript tests and coverage (generator)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -72,7 +72,7 @@ jobs:
           retention-days: 7
 
   test-catalogue:
-    name: Java tests and coverage (${{ env.CATALOGUE_PROJECT_DIR }})
+    name: Java tests and coverage (catalogue)
     runs-on: ubuntu-latest
 
     steps:
@@ -112,8 +112,8 @@ jobs:
       - name: Download JS coverage report
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.JS_PROJECT_DIR }}-coverage
-          path: ${{ env.JS_PROJECT_DIR }}/coverage
+          name: ${{ env.GENERATOR_PROJECT_DIR }}-coverage
+          path: ${{ env.GENERATOR_PROJECT_DIR }}/coverage
 
       - name: Download Java coverage report
         uses: actions/download-artifact@v4
