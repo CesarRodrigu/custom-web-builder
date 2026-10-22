@@ -6,8 +6,7 @@ test.describe("home page", () => {
   }) => {
     await page.goto("/");
 
-    // Follows the same contract as src/lib/metadata.ts#buildTitle
-    await expect(page).toHaveTitle("Home page | Astro");
+    await expect(page).toHaveTitle("Página de inicio | Astro");
   });
 
   test("shows the main heading with the site name", async ({ page }) => {
@@ -23,8 +22,8 @@ test.describe("home page", () => {
 
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      "Website generator: home-page",
+      "Website generator: pagina-de-inicio",
     );
-    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.locator("html")).toHaveAttribute("lang", "es");
   });
 });

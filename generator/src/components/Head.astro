@@ -1,0 +1,46 @@
+---
+import { hreflangCodes, locales, siteName } from "@/config/site";
+import { buildLocaleAlternates, buildTitle, toSlug } from "@/lib/metadata";
+
+interface Props {
+  /** Title of the current page, without the site name. */
+  title?: string;
+  /** Meta description of the page; one derived from the title is used when omitted. */
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const pageTitle = buildTitle(siteName, title);
+const metaDescription =
+  description ?? `Website generator: ${toSlug(title ?? siteName)}`;
+const baseUrl = Astro.site ?? Astro.url.origin;
+const canonicalUrl = new URL(Astro.url.pathname, baseUrl);
+const alternates = buildLocaleAlternates(
+  Astro.url.pathname,
+  locales,
+  hreflangCodes,
+  baseUrl,
+);
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width" />
+<title>{pageTitle}</title>
+<meta name="description" content={metaDescription} />
+<meta name="generator" content={Astro.generator} />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" href="/favicon.ico" />
+
+<link rel="canonical" href={canonicalUrl} />
+{Object.entries(alternates).map(([lang, href]) => (
+  <link rel="alternate" hreflang={lang} href={href} />
+))}
+
+<link rel="sitemap" href="/sitemap-index.xml" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={siteName} />
+<meta property="og:title" content={pageTitle} />
+<meta property="og:description" content={metaDescription} />
+<meta property="og:url" content={canonicalUrl} />
