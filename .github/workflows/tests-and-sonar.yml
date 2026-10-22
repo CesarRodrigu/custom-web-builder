@@ -1,0 +1,129 @@
+name: Tests and SonarQube coverage
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "generator/**"
+      - "catalog/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "generator/**"
+      - "catalog/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GENERATOR_PROJECT_DIR: generator
+  CATALOGUE_PROJECT_DIR: catalog
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  test-generator:
+    name: JavaScript/TypeScript tests and coverage (${{ env.GENERATOR_PROJECT_DIR }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.GENERATOR_PROJECT_DIR }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v3
+        with:
+          version: 12
+          runtime: node@26
+          working-directory: ${{ env.GENERATOR_PROJECT_DIR }}
+          cache: true
+          cache-dependency-path: ${{ env.GENERATOR_PROJECT_DIR }}/pnpm-lock.yaml
+          require-lockfile: true
+
+      - name: Run unit tests with coverage
+        run: pnpm test:unit:coverage
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run end-to-end tests
+        run: pnpm test:e2e
+
+      - name: Upload JS coverage report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ env.GENERATOR_PROJECT_DIR }}-coverage
+          path: ${{ env.GENERATOR_PROJECT_DIR }}/coverage/lcov.info
+          retention-days: 7
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ env.GENERATOR_PROJECT_DIR }}-playwright-report
+          path: ${{ env.GENERATOR_PROJECT_DIR }}/playwright-report/
+          retention-days: 7
+
+  test-catalogue:
+    name: Java tests and coverage (${{ env.CATALOGUE_PROJECT_DIR }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Run Java tests with coverage
+        working-directory: ${{ env.CATALOGUE_PROJECT_DIR }}
+        run: mvn -B verify -Pcoverage
+
+      - name: Upload Java coverage report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ env.CATALOGUE_PROJECT_DIR }}-coverage
+          path: ${{ env.CATALOGUE_PROJECT_DIR }}/target/site/jacoco/jacoco.xml
+          retention-days: 7
+
+  sonar:
+    name: SonarQube scan and quality gate
+    runs-on: ubuntu-latest
+    needs: [test-generator, test-catalogue]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download JS coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.JS_PROJECT_DIR }}-coverage
+          path: ${{ env.JS_PROJECT_DIR }}/coverage
+
+      - name: Download Java coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CATALOGUE_PROJECT_DIR }}-coverage
+          path: ${{ env.CATALOGUE_PROJECT_DIR }}/target/site/jacoco
+
+      - name: SonarQube scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        with:
+          projectBaseDir: .
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
