@@ -1,0 +1,30 @@
+---
+import { defaultLocale, type Locale } from "@/config/site";
+import Head from "@/components/Head.astro";
+
+interface Props {
+  /** Title of the page, without the site name. */
+  title?: string;
+  /** Meta description of the page; one derived from the title is used when omitted. */
+  description?: string;
+  /** Language of the page content; the locale of the current route is used when omitted. */
+  lang?: Locale;
+}
+
+const { title, description, lang } = Astro.props;
+// `Astro.currentLocale` is typed as a plain string, but only the locales of
+// the site can reach this point, because Astro routes each page under its
+// locale.
+const routeLocale = Astro.currentLocale as Locale | undefined;
+const documentLang = lang ?? routeLocale ?? defaultLocale;
+---
+
+<!doctype html>
+<html lang={documentLang}>
+  <head>
+    <Head title={title} description={description} />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

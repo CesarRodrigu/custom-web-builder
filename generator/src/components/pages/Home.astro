@@ -1,0 +1,25 @@
+---
+/**
+ * Localized strings for the home page.
+ *
+ * Exported so every locale page can type its `texts` object and get the same
+ * compile-time check; the object literal is the only thing that differs
+ * between locales.
+ */
+export interface HomeTexts {
+  /** Site display name shown as the main heading. */
+  siteName: string;
+  /** Human-readable page title, used for `<title>` and meta description. */
+  pageTitle: string;
+}
+
+interface Props {
+  /** Localized strings for this locale; the only difference between locales. */
+  texts: HomeTexts;
+}
+
+const { texts } = Astro.props;
+---
+
+<h1>{texts.siteName}</h1>
+<h2>{Astro.currentLocale}</h2>
