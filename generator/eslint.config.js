@@ -25,7 +25,12 @@ const exportedMemberDocs = {
 };
 
 export default defineConfig(
-  { ignores: ["{dist,.astro,playwright-report,test-results,coverage}/"] },
+  {
+    ignores: [
+      "{dist,.astro,playwright-report,test-results,coverage}/",
+      "src/components/ui/**",
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...astro.configs["flat/recommended"],
