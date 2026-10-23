@@ -1,6 +1,7 @@
 ---
 import { defaultLocale, type Locale } from "@/config/site";
 import Head from "@/components/Head.astro";
+import "@/styles/global.css";
 
 interface Props {
   /** Title of the page, without the site name. */
@@ -12,9 +13,6 @@ interface Props {
 }
 
 const { title, description, lang } = Astro.props;
-// `Astro.currentLocale` is typed as a plain string, but only the locales of
-// the site can reach this point, because Astro routes each page under its
-// locale.
 const routeLocale = Astro.currentLocale as Locale | undefined;
 const documentLang = lang ?? routeLocale ?? defaultLocale;
 ---
