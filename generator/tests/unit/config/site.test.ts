@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 describe("site config", () => {
   it("exposes the site display name", () => {
-    expect(siteName).toBe("Astro");
+    expect(siteName).toBe("Custom Web Builder");
   });
 
   it("declares an hreflang code for every supported locale", () => {

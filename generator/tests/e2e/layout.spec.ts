@@ -4,21 +4,21 @@ const pages = [
   {
     path: "/",
     lang: "es",
-    title: "Página de inicio | Astro",
+    title: "Página de inicio | Custom Web Builder",
     description: "Website generator: pagina-de-inicio",
     canonical: /\/$/,
   },
   {
     path: "/es/",
     lang: "es",
-    title: "Página de inicio | Astro",
+    title: "Página de inicio | Custom Web Builder",
     description: "Website generator: pagina-de-inicio",
     canonical: /\/es\/$/,
   },
   {
     path: "/en/",
     lang: "en",
-    title: "Home page | Astro",
+    title: "Home page | Custom Web Builder",
     description: "Website generator: home-page",
     canonical: /\/en\/$/,
   },
@@ -31,7 +31,9 @@ for (const { path, lang, title, description, canonical } of pages) {
 
       await expect(page).toHaveTitle(title);
       await expect(page.locator("html")).toHaveAttribute("lang", lang);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Astro");
+      await expect(
+        page.getByText("Custom Web Builder", { exact: true }),
+      ).toBeVisible();
     });
 
     test("includes the metadata of the shared head", async ({ page }) => {
