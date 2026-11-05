@@ -1,13 +1,6 @@
 ---
-import Home, { type HomeTexts } from "@/components/pages/Home.astro";
-import BaseLayout from "@/layouts/BaseLayout.astro";
+import { defaultLocale } from "@/config/site";
 
-const texts: HomeTexts = {
-  siteName: "Astro",
-  pageTitle: "Home page",
-};
+const locale = defaultLocale;
+return Astro.redirect(`/${locale}/`);
 ---
-
-<BaseLayout title={texts.pageTitle}>
-  <Home texts={texts} />
-</BaseLayout>

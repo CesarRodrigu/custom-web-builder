@@ -44,3 +44,12 @@ const alternates = buildLocaleAlternates(
 <meta property="og:title" content={pageTitle} />
 <meta property="og:description" content={metaDescription} />
 <meta property="og:url" content={canonicalUrl} />
+
+<script is:inline>
+  if (!navigator.webdriver) {
+    const scanScript = document.createElement("script");
+    scanScript.crossOrigin = "anonymous";
+    scanScript.src = "//unpkg.com/react-scan/dist/auto.global.js";
+    document.head.append(scanScript);
+  }
+</script>

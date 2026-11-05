@@ -6,13 +6,15 @@ test.describe("home page", () => {
   }) => {
     await page.goto("/");
 
-    await expect(page).toHaveTitle("Página de inicio | Astro");
+    await expect(page).toHaveTitle("Página de inicio | Custom Web Builder");
   });
 
-  test("shows the main heading with the site name", async ({ page }) => {
+  test("shows the site name in the editor sidebar", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Astro");
+    await expect(
+      page.getByText("Custom Web Builder", { exact: true }),
+    ).toBeVisible();
   });
 
   test("declares the description and the document language", async ({

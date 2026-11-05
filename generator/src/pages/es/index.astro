@@ -1,10 +1,68 @@
 ---
-import Home, { type HomeTexts } from "@/components/pages/Home.astro";
+import Home, { type HomeTexts } from "@/components/Home.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
 const texts: HomeTexts = {
-  siteName: "Astro",
   pageTitle: "Página de inicio",
+  editor: {
+    siteSection: "Configuración del sitio",
+    siteNameLabel: "Nombre del sitio",
+    siteNamePlaceholder: "Panadería María",
+    siteNameHint: "Nombre con el que se generará el sitio.",
+    siteDescriptionLabel: "Descripción del negocio",
+    siteDescriptionPlaceholder: "Contenido breve sobre el negocio",
+    siteDescriptionHint: "Texto breve que describe el negocio.",
+    siteContactEmailLabel: "Correo electrónico de contacto",
+    siteContactEmailPlaceholder: "contacto@negocio.com",
+    siteContactEmailHint: "Dirección de contacto mostrada en el sitio.",
+    productsEmpty:
+      "Todavía no hay productos. Añade el primero para componer el catálogo.",
+    addProduct: "Añadir producto",
+    removeProduct: "Eliminar",
+    removeProductTitle: "¿Eliminar este producto?",
+    removeProductDescription:
+      "Se quitará del catálogo y no podrá recuperarse. La configuración del sitio no cambia.",
+    removeProductCancel: "Cancelar",
+    removeProductRemove: "Eliminar producto",
+    deleteProduct: "Borrar producto",
+    productCategoriesLabel: "Categorías",
+    productCategoryLabel: "Categoría",
+    productCategoryPlaceholder: "Dulces/Tartas",
+    addCategory: "Añadir",
+    productNameLabel: "Nombre del producto",
+    productNamePlaceholder: "Tarta de manzana",
+    productNameHint: "Nombre con el que aparecerá en el catálogo.",
+    productDescriptionLabel: "Descripción",
+    productDescriptionPlaceholder: "Contenido breve del producto",
+    productDescriptionHint: "Texto breve que describe el producto.",
+    productPriceLabel: "Precio",
+    productPricePlaceholder: "19,99",
+    productPriceHint: "Importe del producto, por ejemplo 19,99.",
+    productImageUrlLabel: "URL de la imagen",
+    productImageUrlPlaceholder: "https://…",
+    productImageUrlHint: "URL de la imagen del producto.",
+    exportSection: "Exportar",
+    exportFormatLabel: "Formato",
+    exportButton: "Descargar configuración",
+    exportDisabledHint:
+      "Completa los campos obligatorios para poder exportar la configuración.",
+    errorRequired: "Este campo es obligatorio.",
+    errorEmail: "Introduce un correo electrónico válido.",
+    errorPrice: "Introduce un precio válido, por ejemplo 19,99.",
+    errorUrl: "Introduce una URL que empiece por http:// o https://.",
+    errorCategory:
+      "Separa los niveles de categoría con «/», sin dejar niveles vacíos.",
+    errorDuplicate: "Otro producto del catálogo ya usa este nombre.",
+    languageMockupLabel: "Cambiar idioma",
+    comingSoon: "Disponible próximamente",
+    exportFormatLabels: {
+      json: "Carpeta de configuración (JSON)",
+      yaml: "Carpeta de configuración (YAML)",
+      package: "Carpeta de configuración (ZIP)",
+    },
+    sidebarProductsEmpty: "El catálogo está vacío.",
+    unnamedProduct: "Producto",
+  },
 };
 ---
 

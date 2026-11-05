@@ -1,10 +1,67 @@
 ---
-import Home, { type HomeTexts } from "@/components/pages/Home.astro";
+import Home, { type HomeTexts } from "@/components/Home.astro";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 
 const texts: HomeTexts = {
-  siteName: "Astro",
   pageTitle: "Home page",
+  editor: {
+    siteSection: "Site configuration",
+    siteNameLabel: "Site name",
+    siteNamePlaceholder: "Maria's Bakery",
+    siteNameHint: "Name the site will be generated with.",
+    siteDescriptionLabel: "Business description",
+    siteDescriptionPlaceholder: "Brief content about the business",
+    siteDescriptionHint: "Short text describing the business.",
+    siteContactEmailLabel: "Contact email",
+    siteContactEmailPlaceholder: "contact@business.com",
+    siteContactEmailHint: "Contact address shown on the site.",
+    productsEmpty: "No products yet. Add the first one to build the catalog.",
+    addProduct: "Add product",
+    removeProduct: "Remove",
+    removeProductTitle: "Delete this product?",
+    removeProductDescription:
+      "It will be removed from the catalog and cannot be recovered. The site configuration stays untouched.",
+    removeProductCancel: "Cancel",
+    removeProductRemove: "Delete product",
+    deleteProduct: "Delete product",
+    productCategoriesLabel: "Categories",
+    productCategoryLabel: "Category",
+    productCategoryPlaceholder: "Sweets/Pies",
+    addCategory: "Add",
+    productNameLabel: "Product name",
+    productNamePlaceholder: "Apple pie",
+    productNameHint: "Name shown for the product in the catalog.",
+    productDescriptionLabel: "Description",
+    productDescriptionPlaceholder: "Brief product content",
+    productDescriptionHint: "Short text describing the product.",
+    productPriceLabel: "Price",
+    productPricePlaceholder: "19.99",
+    productPriceHint: "Amount of the product, e.g. 19.99.",
+    productImageUrlLabel: "Image URL",
+    productImageUrlPlaceholder: "https://…",
+    productImageUrlHint: "URL of the product image.",
+    exportSection: "Export",
+    exportFormatLabel: "Format",
+    exportButton: "Download configuration",
+    exportDisabledHint:
+      "Fill in the required fields to be able to export the configuration.",
+    errorRequired: "This field is required.",
+    errorEmail: "Enter a valid email address.",
+    errorPrice: "Enter a valid price, e.g. 19.99.",
+    errorUrl: "Enter a URL starting with http:// or https://.",
+    errorCategory:
+      'Separate category levels with "/", leaving no levels empty.',
+    errorDuplicate: "Another product in the catalog already uses this name.",
+    languageMockupLabel: "Change language",
+    comingSoon: "Coming soon",
+    exportFormatLabels: {
+      json: "Configuration folder (JSON)",
+      yaml: "Configuration folder (YAML)",
+      package: "Configuration folder (ZIP)",
+    },
+    sidebarProductsEmpty: "The catalog is empty.",
+    unnamedProduct: "Product",
+  },
 };
 ---
 
