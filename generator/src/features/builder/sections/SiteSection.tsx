@@ -33,7 +33,7 @@ interface SiteSectionProps {
  * @param props Page texts, the site draft and its change callbacks.
  * @returns The page markup.
  */
-export function SiteSection(props: SiteSectionProps) {
+export function SiteSection(props: Readonly<SiteSectionProps>) {
   const { texts, site, hasProducts, getError, onChange } = props;
   return (
     <section className="flex flex-col gap-4">

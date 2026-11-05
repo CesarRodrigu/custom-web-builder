@@ -44,7 +44,7 @@ interface ProductSectionProps {
  * @param props Page data, the product draft and its change callbacks.
  * @returns The page markup.
  */
-export function ProductSection(props: ProductSectionProps) {
+export function ProductSection(props: Readonly<ProductSectionProps>) {
   const {
     index,
     product,

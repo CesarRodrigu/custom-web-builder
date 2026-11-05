@@ -96,7 +96,7 @@ async function downloadConfiguration(
  * @param props Export view props.
  * @returns The export view markup.
  */
-export default function ExportView(props: ExportViewProps) {
+export default function ExportView(props: Readonly<ExportViewProps>) {
   const { texts, validation } = props;
   const [formatId, setFormatId] = useState<ExportFormatId>("json");
   const format = getExportFormat(formatId) ?? exportFormats[0];
@@ -158,9 +158,9 @@ export default function ExportView(props: ExportViewProps) {
         </Button>
       </div>
       {!validation.valid && (
-        <p className="text-sm text-muted-foreground" role="status">
+        <output className="text-sm text-muted-foreground">
           {texts.exportDisabledHint}
-        </p>
+        </output>
       )}
     </section>
   );

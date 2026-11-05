@@ -53,7 +53,7 @@ function toYaml(value: unknown, indent: number = 0): string {
       })
       .join("\n");
   }
-  return String(value);
+  return JSON.stringify(value);
 }
 
 /**

@@ -21,7 +21,7 @@ interface EditorTopBarProps {
  * @param props Top bar texts and its export callback.
  * @returns The top bar markup.
  */
-export function EditorTopBar(props: EditorTopBarProps) {
+export function EditorTopBar(props: Readonly<EditorTopBarProps>) {
   const { texts, onOpenExport } = props;
   return (
     <header className="flex items-center justify-between border-b px-4 py-1">

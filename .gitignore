@@ -54,3 +54,9 @@ zap/wrk/*
 
 # macOS
 .DS_Store
+
+.sonar
+.sonarlint
+
+*-report/
+*-reports/

@@ -11,8 +11,6 @@ import { z } from "astro/zod";
 
 /** Number-like price accepted in a draft: digits with up to two decimals. */
 const PRICE_PATTERN = /^\d+(?:[.,]\d{1,2})?$/;
-/** Minimal email shape accepted to avoid unreadable regexes in error paths. */
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** HTTP(S) URL accepted for product images. */
 const IMAGE_URL_PATTERN = /^https?:\/\/\S+$/;
 
@@ -196,7 +194,13 @@ export const siteConfigDraftSchema = z.object({
   site: z.object({
     name: z.string().refine(isFilled, "required"),
     description: z.string(),
-    contactEmail: z.string().refine(isEmptyOr(matches(EMAIL_PATTERN)), "email"),
+    contactEmail: z
+      .string()
+      .refine(
+        (value) =>
+          value.trim() === "" || z.email().safeParse(value.trim()).success,
+        "email",
+      ),
   }),
   products: z.array(productDraftSchema),
 });

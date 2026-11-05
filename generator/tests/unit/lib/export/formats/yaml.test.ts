@@ -61,4 +61,8 @@ describe("yamlFormat", () => {
   it("exports the yaml file extension so package files end in .yaml", () => {
     expect(yamlFormat.fileExtension).toBe("yaml");
   });
+
+  it("serializes unsupported primitive values using JSON.stringify", () => {
+    expect(yamlFormat.serialize(Symbol("test"))).toBeUndefined();
+  });
 });

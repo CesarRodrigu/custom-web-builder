@@ -114,7 +114,7 @@ function toTreeErrors(validation: SiteConfigValidation): {
  * @param props Component props, holding the localized strings.
  * @returns The editor markup.
  */
-export default function ConfigEditor(props: ConfigEditorProps) {
+export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
   const { texts } = props;
   const [draft, setDraft] = useState<SiteConfigDraft>(createEmptyDraft);
   const [section, setSection] = useState<EditorSection>({ kind: "config" });

@@ -52,7 +52,7 @@ interface EditorSidebarProps {
  * @param props Sidebar settings and the callbacks it needs.
  * @returns The sidebar markup.
  */
-export function EditorSidebar(props: EditorSidebarProps) {
+export function EditorSidebar(props: Readonly<EditorSidebarProps>) {
   const {
     texts,
     fileTree,

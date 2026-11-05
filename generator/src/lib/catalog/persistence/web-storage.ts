@@ -91,32 +91,42 @@ export function createWebStorageDraftPersistence(
     ? null
     : window.localStorage,
 ): DraftPersistence {
+  const loadDraft = (): SiteConfigDraft | undefined => {
+    if (storage === null) return undefined;
+
+    let raw: string | null;
+
+    try {
+      raw = storage.getItem(DRAFT_STORAGE_KEY);
+    } catch {
+      return undefined;
+    }
+
+    if (raw === null) return undefined;
+
+    try {
+      const result = storedDraftSchema.safeParse(JSON.parse(raw));
+      return result.success ? withStoredProductIds(result.data) : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const saveDraft = (draft: SiteConfigDraft): void => {
+    if (storage === null) return;
+
+    try {
+      storage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch {
+      // Persisting is best effort on purpose: editing continues without it.
+    }
+  };
+
   return {
-    load: async () => {
-      if (storage === null) return undefined;
-
-      let raw: string | null;
-      try {
-        raw = storage.getItem(DRAFT_STORAGE_KEY);
-      } catch {
-        return undefined;
-      }
-      if (raw === null) return undefined;
-
-      try {
-        const result = storedDraftSchema.safeParse(JSON.parse(raw));
-        return result.success ? withStoredProductIds(result.data) : undefined;
-      } catch {
-        return undefined;
-      }
-    },
-    save: async (draft) => {
-      if (storage === null) return;
-      try {
-        storage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-      } catch {
-        // Persisting is best effort on purpose: editing continues without it.
-      }
+    load: () => Promise.resolve(loadDraft()),
+    save: (draft) => {
+      saveDraft(draft);
+      return Promise.resolve();
     },
   };
 }
