@@ -48,21 +48,28 @@ describe("yamlFormat", () => {
     );
   });
 
-  it("covers the scalar and empty shapes the configuration can produce", () => {
-    expect(yamlFormat.serialize(null)).toBe("null");
-    expect(yamlFormat.serialize(undefined)).toBe("null");
-    expect(yamlFormat.serialize(true)).toBe("true");
-    expect(yamlFormat.serialize(19.99)).toBe("19.99");
-    expect(yamlFormat.serialize([])).toBe("[]");
-    expect(yamlFormat.serialize({})).toBe("{}");
-    expect(yamlFormat.serialize("1 + 2 = 3")).toBe('"1 + 2 = 3"');
+  it.each([
+    { name: "null", value: null, expected: "null" },
+    { name: "undefined", value: undefined, expected: "null" },
+    { name: "a boolean", value: true, expected: "true" },
+    { name: "a number", value: 19.99, expected: "19.99" },
+    { name: "an empty list", value: [], expected: "[]" },
+    { name: "an empty object", value: {}, expected: "{}" },
+    {
+      name: "a string that needs quoting",
+      value: "1 + 2 = 3",
+      expected: '"1 + 2 = 3"',
+    },
+    {
+      name: "an unsupported primitive using JSON.stringify",
+      value: Symbol("test"),
+      expected: undefined,
+    },
+  ])("serializes $name", ({ value, expected }) => {
+    expect(yamlFormat.serialize(value)).toBe(expected);
   });
 
   it("exports the yaml file extension so package files end in .yaml", () => {
     expect(yamlFormat.fileExtension).toBe("yaml");
-  });
-
-  it("serializes unsupported primitive values using JSON.stringify", () => {
-    expect(yamlFormat.serialize(Symbol("test"))).toBeUndefined();
   });
 });

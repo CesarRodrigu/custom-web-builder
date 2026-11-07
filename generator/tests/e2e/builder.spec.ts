@@ -1,20 +1,8 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import JSZip from "jszip";
 
-/**
- * Waits until the configuration editor island has hydrated, so every
- * interaction goes through React instead of racing the static Server markup.
- *
- * Astro marks islands with an `ssr` attribute until hydration completes, so
- * the wait ends exactly when the editor becomes interactive.
- * @param page Playwright page showing the editor.
- */
-async function waitForEditorHydration(page: Page): Promise<void> {
-  await page.waitForFunction(
-    () => document.querySelectorAll("astro-island:not([ssr])").length > 0,
-  );
-}
+import { waitForEditorHydration } from "@tests/e2e/helpers";
 
 test.describe("configuration editor in Spanish", () => {
   test("validates in real time and exports the configuration package", async ({

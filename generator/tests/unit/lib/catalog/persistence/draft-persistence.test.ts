@@ -1,23 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getDraftPersistence } from "@/lib/catalog/persistence/draft-persistence";
-import type { SiteConfigDraft } from "@/lib/catalog/schema";
-
-/**
- * Builds a complete valid draft with every field filled, so the composition
- * root is exercised end to end against its real implementation.
- * @returns A full draft to persist or read back.
- */
-function sampleDraft(): SiteConfigDraft {
-  return {
-    site: {
-      name: "Panadería María",
-      description: "",
-      contactEmail: "",
-    },
-    products: [],
-  };
-}
+import { draftWith } from "@tests/unit/helpers/fixtures";
 
 describe("getDraftPersistence", () => {
   it("resolves the web storage implementation and degrades on the server", async () => {
@@ -26,6 +10,6 @@ describe("getDraftPersistence", () => {
     const persistence = getDraftPersistence();
 
     await expect(persistence.load()).resolves.toBeUndefined();
-    await expect(persistence.save(sampleDraft())).resolves.toBeUndefined();
+    await expect(persistence.save(draftWith())).resolves.toBeUndefined();
   });
 });

@@ -6,21 +6,23 @@ import {
   SITE_FILE,
   toProductPaths,
 } from "@/lib/export/package";
-import type { SiteConfig } from "@/lib/catalog/schema";
+import {
+  normalizedProductWith,
+  siteConfigWith,
+} from "@tests/unit/helpers/fixtures";
 
 describe("buildSiteFileMap", () => {
   it("writes one site file and one file per product inside its category folder chain", () => {
-    const config: SiteConfig = {
-      site: { name: "Panadería María" },
+    const config = siteConfigWith({
       products: [
-        {
+        normalizedProductWith({
           name: "Tarta de manzana",
           categories: [["Dulces", "Tartas"]],
           price: 19.99,
-        },
-        { name: "Pan de centeno", categories: [], price: 2.5 },
+        }),
+        normalizedProductWith({ name: "Pan de centeno", price: 2.5 }),
       ],
-    };
+    });
 
     const files = buildSiteFileMap(config);
 
@@ -42,16 +44,16 @@ describe("buildSiteFileMap", () => {
   });
 
   it("duplicates the product file into every category chain it belongs to", () => {
-    const config: SiteConfig = {
+    const config = siteConfigWith({
       site: { name: "Bakery" },
       products: [
-        {
+        normalizedProductWith({
           name: "Coffee cake",
           categories: [["Sweets", "Cakes"], ["Drinks"]],
           price: 4,
-        },
+        }),
       ],
-    };
+    });
 
     const files = buildSiteFileMap(config);
     const expectedContent = {
@@ -73,18 +75,17 @@ describe("buildSiteFileMap", () => {
   });
 
   it("keeps the optional description and image URL of the product file", () => {
-    const config: SiteConfig = {
+    const config = siteConfigWith({
       site: { name: "Bakery" },
       products: [
-        {
+        normalizedProductWith({
           name: "Bread",
-          categories: [],
           price: 0.5,
           description: "Whole grain",
           imageUrl: "https://example.com/bread.jpg",
-        },
+        }),
       ],
-    };
+    });
 
     const files = buildSiteFileMap(config);
 
@@ -97,10 +98,16 @@ describe("buildSiteFileMap", () => {
   });
 
   it("falls back to stable names for slugs without alphanumeric characters", () => {
-    const config: SiteConfig = {
+    const config = siteConfigWith({
       site: { name: "%%%" },
-      products: [{ name: "###", categories: [["###", "###"]], price: 1 }],
-    };
+      products: [
+        normalizedProductWith({
+          name: "###",
+          categories: [["###", "###"]],
+          price: 1,
+        }),
+      ],
+    });
 
     const files = buildSiteFileMap(config);
 
@@ -111,10 +118,16 @@ describe("buildSiteFileMap", () => {
   });
 
   it("serializes every file in a non default format through the registered serializer", () => {
-    const config: SiteConfig = {
+    const config = siteConfigWith({
       site: { name: "Bakery" },
-      products: [{ name: "Bread", categories: [["Bread"]], price: 1 }],
-    };
+      products: [
+        normalizedProductWith({
+          name: "Bread",
+          categories: [["Bread"]],
+          price: 1,
+        }),
+      ],
+    });
 
     const files = buildSiteFileMap(config, getExportFormat("yaml")!);
 
@@ -128,21 +141,24 @@ describe("buildSiteFileMap", () => {
 });
 
 describe("toProductPaths", () => {
-  it("places products without categories at the root of the products folder", () => {
-    const paths = toProductPaths(
-      { name: "Bread", categories: [], price: 1 },
-      1,
-    );
-
-    expect(paths).toEqual(["products/bread.json"]);
-  });
-
-  it("uses the given fallback number as file name when the slug is empty", () => {
-    const paths = toProductPaths(
-      { name: "***", categories: [["Dulces"]], price: 1 },
-      3,
-    );
-
-    expect(paths).toEqual(["products/dulces/product-3.json"]);
+  it.each([
+    {
+      name: "places products without categories at the root of the products folder",
+      product: normalizedProductWith({ name: "Bread", price: 1 }),
+      fallbackNumber: 1,
+      expected: ["products/bread.json"],
+    },
+    {
+      name: "uses the given fallback number as file name when the slug is empty",
+      product: normalizedProductWith({
+        name: "***",
+        categories: [["Dulces"]],
+        price: 1,
+      }),
+      fallbackNumber: 3,
+      expected: ["products/dulces/product-3.json"],
+    },
+  ])("$name", ({ product, fallbackNumber, expected }) => {
+    expect(toProductPaths(product, fallbackNumber)).toEqual(expected);
   });
 });

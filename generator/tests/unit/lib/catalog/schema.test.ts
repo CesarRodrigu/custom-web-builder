@@ -3,48 +3,34 @@ import { describe, expect, it } from "vitest";
 import {
   nextProductId,
   parseSiteConfig,
-  type ProductDraft,
-  type SiteConfigDraft,
+  ValidationCode,
+  type FieldIssue,
+  type SiteConfig,
+  type SiteConfigValidation,
 } from "@/lib/catalog/schema";
+import { draftWith, productWith } from "@tests/unit/helpers/fixtures";
 
 /**
- * Builds an empty product draft carrying the given id, so id tests only
- * specify the identity under check.
- * @param id Incremental id of the product.
- * @returns An empty product draft ready for the catalog.
+ * Asserts that a validation result is valid and returns its normalized
+ * configuration, so tests can inspect the output without repeating the type
+ * guard.
+ * @param result Validation result under check.
+ * @returns The normalized configuration carried by a valid result.
  */
-function productWithId(id: number): ProductDraft {
-  return {
-    id,
-    name: "",
-    categories: [],
-    description: "",
-    price: "",
-    imageUrl: "",
-  };
+function expectValidConfig(result: SiteConfigValidation): SiteConfig {
+  expect(result.valid).toBe(true);
+  return (result as Extract<SiteConfigValidation, { valid: true }>).config;
 }
 
 /**
- * Builds a complete valid draft out of partial overrides, so tests only
- * specify the fields under check.
- * @param overrides Partial draft to merge over an empty valid base.
- * @returns A full draft ready to be validated.
+ * Asserts that a validation result is invalid and returns its issues, so tests
+ * can inspect them without repeating the type guard.
+ * @param result Validation result under check.
+ * @returns The issues carried by an invalid result.
  */
-function draftWith(overrides: Partial<SiteConfigDraft>): SiteConfigDraft {
-  const base: SiteConfigDraft = {
-    site: {
-      name: "Panadería María",
-      description: "",
-      contactEmail: "",
-    },
-    products: [],
-  };
-  return {
-    ...base,
-    ...overrides,
-    site: { ...base.site, ...overrides.site },
-    products: overrides.products ?? base.products,
-  };
+function expectInvalidIssues(result: SiteConfigValidation): FieldIssue[] {
+  expect(result.valid).toBe(false);
+  return (result as Extract<SiteConfigValidation, { valid: false }>).issues;
 }
 
 describe("parseSiteConfig", () => {
@@ -57,21 +43,17 @@ describe("parseSiteConfig", () => {
           contactEmail: "",
         },
         products: [
-          {
-            id: 1,
+          productWith({
             name: "  Tarta de manzana  ",
             categories: ["  Dulces/Tartas  "],
-            description: "",
             price: "19,99",
             imageUrl: "   ",
-          },
+          }),
         ],
       }),
     );
 
-    expect(result.valid).toBe(true);
-    if (!result.valid) return;
-    expect(result.config).toEqual({
+    expect(expectValidConfig(result)).toEqual({
       site: { name: "Panadería María" },
       products: [
         {
@@ -92,21 +74,17 @@ describe("parseSiteConfig", () => {
           contactEmail: "hello@bakery.com",
         },
         products: [
-          {
-            id: 1,
+          productWith({
             name: "Bread",
-            categories: [],
-            description: "Whole grain",
             price: "0.5",
+            description: "Whole grain",
             imageUrl: "https://example.com/bread.jpg",
-          },
+          }),
         ],
       }),
     );
 
-    expect(result.valid).toBe(true);
-    if (!result.valid) return;
-    expect(result.config).toEqual({
+    expect(expectValidConfig(result)).toEqual({
       site: {
         name: "Bakery",
         description: "Fresh bread",
@@ -124,90 +102,77 @@ describe("parseSiteConfig", () => {
     });
   });
 
-  it("reports a required issue when the site name is blank", () => {
-    const result = parseSiteConfig(
-      draftWith({
-        site: {
-          name: "   ",
-          description: "",
-          contactEmail: "",
-        },
-      }),
-    );
-
-    expect(result).toEqual({
-      valid: false,
-      issues: [{ field: "site.name", code: "required" }],
-    });
-  });
-
-  it("reports an issue for a malformed contact email", () => {
-    const result = parseSiteConfig(
-      draftWith({
-        site: {
-          name: "Bakery",
-          description: "",
-          contactEmail: "not-an-email",
-        },
-      }),
-    );
-
-    expect(result).toEqual({
-      valid: false,
-      issues: [{ field: "site.contactEmail", code: "email" }],
-    });
-  });
-
-  it("reports a price issue for a product without a valid price", () => {
-    const result = parseSiteConfig(
-      draftWith({
+  it.each([
+    {
+      name: "a blank site name",
+      draft: { site: { name: "   " } },
+      issues: [{ field: "site.name", code: ValidationCode.Required }],
+    },
+    {
+      name: "a site name that is not text",
+      draft: { site: { name: 42 as unknown as string } },
+      issues: [{ field: "site.name", code: ValidationCode.Required }],
+    },
+    {
+      name: "a malformed contact email",
+      draft: { site: { contactEmail: "not-an-email" } },
+      issues: [{ field: "site.contactEmail", code: ValidationCode.Email }],
+    },
+    {
+      name: "a product without a valid price",
+      draft: {
+        products: [productWith({ name: "Bread", price: "abc" })],
+      },
+      issues: [{ field: "products.0.price", code: ValidationCode.Price }],
+    },
+    {
+      name: "a price with more than two decimals",
+      draft: {
+        products: [productWith({ name: "Bread", price: "10.999" })],
+      },
+      issues: [{ field: "products.0.price", code: ValidationCode.Price }],
+    },
+    {
+      name: "an image URL without an http scheme",
+      draft: {
         products: [
-          {
-            id: 1,
+          productWith({
             name: "Bread",
-            categories: [],
-            description: "",
-            price: "abc",
-            imageUrl: "",
-          },
+            price: "1.50",
+            imageUrl: "ftp://example.com/bread.jpg",
+          }),
         ],
-      }),
-    );
+      },
+      issues: [{ field: "products.0.imageUrl", code: ValidationCode.Url }],
+    },
+    {
+      name: "a category path with empty segments",
+      draft: {
+        products: [
+          productWith({
+            name: "Bread",
+            price: "2",
+            categories: ["Dulces", "/Tartas/"],
+          }),
+        ],
+      },
+      issues: [
+        { field: "products.0.categories.1", code: ValidationCode.Category },
+      ],
+    },
+  ])("reports $name as a validation issue", ({ draft, issues }) => {
+    const result = parseSiteConfig(draftWith(draft));
 
-    expect(result).toEqual({
-      valid: false,
-      issues: [{ field: "products.0.price", code: "price" }],
-    });
+    expect(result).toEqual({ valid: false, issues });
   });
 
   it("reports a duplicate issue per product sharing the same trimmed name", () => {
     const result = parseSiteConfig(
       draftWith({
         products: [
-          {
-            id: 1,
-            name: "  Pan  ",
-            categories: [],
-            description: "",
-            price: "2",
-            imageUrl: "",
-          },
-          {
-            id: 2,
-            name: "pan",
-            categories: [],
-            description: "",
-            price: "3",
-            imageUrl: "",
-          },
-          {
-            id: 3,
-            name: "Tarta",
-            categories: [],
-            description: "",
-            price: "1",
-            imageUrl: "",
-          },
+          productWith({ id: 1, name: "  Pan  ", price: "2" }),
+          productWith({ id: 2, name: "pan", price: "3" }),
+          productWith({ id: 3, name: "Tarta", price: "1" }),
         ],
       }),
     );
@@ -215,8 +180,8 @@ describe("parseSiteConfig", () => {
     expect(result).toEqual({
       valid: false,
       issues: [
-        { field: "products.0.name", code: "duplicate" },
-        { field: "products.1.name", code: "duplicate" },
+        { field: "products.0.name", code: ValidationCode.Duplicate },
+        { field: "products.1.name", code: ValidationCode.Duplicate },
       ],
     });
   });
@@ -225,22 +190,8 @@ describe("parseSiteConfig", () => {
     const result = parseSiteConfig(
       draftWith({
         products: [
-          {
-            id: 1,
-            name: "Pan",
-            categories: [],
-            description: "",
-            price: "",
-            imageUrl: "",
-          },
-          {
-            id: 2,
-            name: "PAN",
-            categories: [],
-            description: "",
-            price: "",
-            imageUrl: "",
-          },
+          productWith({ id: 1, name: "Pan" }),
+          productWith({ id: 2, name: "PAN" }),
         ],
       }),
     );
@@ -248,10 +199,10 @@ describe("parseSiteConfig", () => {
     expect(result).toEqual({
       valid: false,
       issues: [
-        { field: "products.0.price", code: "price" },
-        { field: "products.1.price", code: "price" },
-        { field: "products.0.name", code: "duplicate" },
-        { field: "products.1.name", code: "duplicate" },
+        { field: "products.0.price", code: ValidationCode.Price },
+        { field: "products.1.price", code: ValidationCode.Price },
+        { field: "products.0.name", code: ValidationCode.Duplicate },
+        { field: "products.1.name", code: ValidationCode.Duplicate },
       ],
     });
   });
@@ -260,119 +211,36 @@ describe("parseSiteConfig", () => {
     const result = parseSiteConfig(
       draftWith({
         products: [
-          {
-            id: 1,
+          productWith({
             name: "Bread",
             categories: [" Dulces caseros / Panes especiales ", "Postres"],
-            description: "",
             price: "2",
-            imageUrl: "",
-          },
+          }),
         ],
       }),
     );
 
-    expect(result.valid).toBe(true);
-    if (!result.valid) return;
-    expect(result.config.products[0]?.categories).toEqual([
+    expect(expectValidConfig(result).products[0]?.categories).toEqual([
       ["Dulces caseros", "Panes especiales"],
       ["Postres"],
     ]);
-  });
-
-  it("reports a category issue per path with empty segments", () => {
-    const result = parseSiteConfig(
-      draftWith({
-        products: [
-          {
-            id: 1,
-            name: "Bread",
-            categories: ["Dulces", "/Tartas/"],
-            description: "",
-            price: "2",
-            imageUrl: "",
-          },
-        ],
-      }),
-    );
-
-    expect(result).toEqual({
-      valid: false,
-      issues: [{ field: "products.0.categories.1", code: "category" }],
-    });
-  });
-
-  it("reports a price issue for more than two decimals", () => {
-    const result = parseSiteConfig(
-      draftWith({
-        products: [
-          {
-            id: 1,
-            name: "Bread",
-            categories: [],
-            description: "",
-            price: "10.999",
-            imageUrl: "",
-          },
-        ],
-      }),
-    );
-
-    expect(result).toEqual({
-      valid: false,
-      issues: [{ field: "products.0.price", code: "price" }],
-    });
-  });
-
-  it("reports a url issue for an image URL without an http scheme", () => {
-    const result = parseSiteConfig(
-      draftWith({
-        products: [
-          {
-            id: 1,
-            name: "Bread",
-            categories: [],
-            description: "",
-            price: "1.50",
-            imageUrl: "ftp://example.com/bread.jpg",
-          },
-        ],
-      }),
-    );
-
-    expect(result).toEqual({
-      valid: false,
-      issues: [{ field: "products.0.imageUrl", code: "url" }],
-    });
   });
 
   it("collects the issues of every offending field in schema order", () => {
     const result = parseSiteConfig(
       draftWith({
         products: [
-          {
-            id: 1,
-            name: "",
-            categories: [],
-            description: "",
-            price: "",
-            imageUrl: "",
-          },
-          {
+          productWith({ id: 1 }),
+          productWith({
             id: 2,
-            name: "",
             categories: ["Dulces//Tartas"],
-            description: "",
             price: "2",
-            imageUrl: "",
-          },
+          }),
         ],
       }),
     );
 
-    expect(result.valid).toBe(false);
-    if (result.valid) return;
-    expect(result.issues.map((issue) => issue.field)).toEqual([
+    expect(expectInvalidIssues(result).map((issue) => issue.field)).toEqual([
       "products.0.name",
       "products.0.price",
       "products.1.name",
@@ -383,25 +251,45 @@ describe("parseSiteConfig", () => {
   it("keeps the product id out of the exported configuration", () => {
     const result = parseSiteConfig(
       draftWith({
-        products: [{ ...productWithId(7), name: "Bread", price: "2" }],
+        products: [productWith({ id: 7, name: "Bread", price: "2" })],
       }),
     );
 
-    expect(result.valid).toBe(true);
-    if (!result.valid) return;
-    expect(result.config.products[0]).not.toHaveProperty("id");
+    expect(expectValidConfig(result).products[0]).not.toHaveProperty("id");
   });
 });
 
 describe("nextProductId", () => {
-  it("starts at 1 for an empty catalog", () => {
-    expect(nextProductId([])).toBe(1);
+  it.each([
+    {
+      name: "an empty catalog",
+      products: [],
+      expected: 1,
+    },
+    {
+      name: "a catalog whose first product was deleted",
+      products: [productWith({ id: 2 })],
+      expected: 3,
+    },
+    {
+      name: "a catalog with a gap between ids",
+      products: [productWith({ id: 2 }), productWith({ id: 5 })],
+      expected: 6,
+    },
+  ])("returns $expected for $name", ({ products, expected }) => {
+    expect(nextProductId(products)).toBe(expected);
   });
+});
 
-  it("continues above the highest id so deleted ids are never reused", () => {
-    // The catalog holds the product that used to be second: the first one
-    // (id 1) was deleted, so the next product must not become id 1 again.
-    expect(nextProductId([productWithId(2)])).toBe(3);
-    expect(nextProductId([productWithId(2), productWithId(5)])).toBe(6);
+describe("ValidationCode", () => {
+  it("keeps the codes stable so the editor messages do not break", () => {
+    expect(ValidationCode).toEqual({
+      Required: "required",
+      Email: "email",
+      Price: "price",
+      Url: "url",
+      Category: "category",
+      Duplicate: "duplicate",
+    });
   });
 });

@@ -4,37 +4,19 @@ import {
   DRAFT_STORAGE_KEY,
   createWebStorageDraftPersistence,
 } from "@/lib/catalog/persistence/web-storage";
-import type { SiteConfigDraft } from "@/lib/catalog/schema";
+import {
+  draftWith,
+  productWith,
+  storedDraftWith,
+  storedProductWith,
+} from "@tests/unit/helpers/fixtures";
 
 /** Storage methods the web storage adapter relies on. */
 type FakeStorage = Pick<Storage, "getItem" | "setItem">;
 
 /**
- * Builds a complete valid draft out of partial overrides, so tests only
- * specify the fields under check.
- * @param overrides Partial draft to merge over an empty valid base.
- * @returns A full draft to persist or read back.
- */
-function draftWith(overrides: Partial<SiteConfigDraft>): SiteConfigDraft {
-  const base: SiteConfigDraft = {
-    site: {
-      name: "Panadería María",
-      description: "",
-      contactEmail: "",
-    },
-    products: [],
-  };
-  return {
-    ...base,
-    ...overrides,
-    site: { ...base.site, ...overrides.site },
-    products: overrides.products ?? base.products,
-  };
-}
-
-/**
- * Builds a fake of the storage the adapter uses, backed by a plain object,
- * so unit tests run without a DOM.
+ * Builds a fake of the storage the adapter uses, backed by a plain object, so
+ * unit tests run without a DOM.
  * @param entries Stored key/value pairs to start from.
  * @returns A storage-like object exposing the persisted entries.
  */
@@ -52,14 +34,11 @@ describe("createWebStorageDraftPersistence", () => {
   it("saves and loads back the same draft", async () => {
     const draft = draftWith({
       products: [
-        {
-          id: 1,
+        productWith({
           name: "Tarta de manzana",
           categories: ["Dulces/Tartas"],
-          description: "",
           price: "19,99",
-          imageUrl: "",
-        },
+        }),
       ],
     });
     const persistence = createWebStorageDraftPersistence(createFakeStorage());
@@ -70,25 +49,14 @@ describe("createWebStorageDraftPersistence", () => {
   });
 
   it("fills in the ids missing in a draft stored before ids existed", async () => {
-    const legacy = {
-      site: { name: "Panadería María", description: "", contactEmail: "" },
-      products: [
-        {
-          name: "Tarta",
-          categories: [],
-          description: "",
-          price: "5",
-          imageUrl: "",
-        },
-        {
-          name: "Pan",
-          categories: ["Salados"],
-          description: "",
-          price: "2",
-          imageUrl: "",
-        },
-      ],
-    };
+    const legacy = storedDraftWith([
+      storedProductWith({ name: "Tarta", price: "5" }),
+      storedProductWith({
+        name: "Pan",
+        categories: ["Salados"],
+        price: "2",
+      }),
+    ]);
     const persistence = createWebStorageDraftPersistence(
       createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(legacy) }),
     );
@@ -103,26 +71,10 @@ describe("createWebStorageDraftPersistence", () => {
   });
 
   it("keeps the stored ids and assigns the missing ones above the highest", async () => {
-    const mixed = {
-      site: { name: "Panadería María", description: "", contactEmail: "" },
-      products: [
-        {
-          id: 5,
-          name: "Tarta",
-          categories: [],
-          description: "",
-          price: "5",
-          imageUrl: "",
-        },
-        {
-          name: "Pan",
-          categories: [],
-          description: "",
-          price: "2",
-          imageUrl: "",
-        },
-      ],
-    };
+    const mixed = storedDraftWith([
+      productWith({ id: 5, name: "Tarta", price: "5" }),
+      storedProductWith({ name: "Pan", price: "2" }),
+    ]);
     const persistence = createWebStorageDraftPersistence(
       createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(mixed) }),
     );
@@ -140,7 +92,7 @@ describe("createWebStorageDraftPersistence", () => {
     const persistence = createWebStorageDraftPersistence(null);
 
     await expect(persistence.load()).resolves.toBeUndefined();
-    await expect(persistence.save(draftWith({}))).resolves.toBeUndefined();
+    await expect(persistence.save(draftWith())).resolves.toBeUndefined();
   });
 
   it("returns nothing when nothing was stored yet", async () => {
@@ -149,34 +101,27 @@ describe("createWebStorageDraftPersistence", () => {
     await expect(persistence.load()).resolves.toBeUndefined();
   });
 
-  it("reports corrupt storage contents as an empty draft", async () => {
+  it.each([
+    { name: "corrupt storage contents", raw: "{ not json" },
+    {
+      name: "storage contents that do not match the draft shape",
+      raw: JSON.stringify({ site: { name: 7 }, products: [] }),
+    },
+  ])("reports $name as an empty draft", async ({ raw }) => {
     const persistence = createWebStorageDraftPersistence(
-      createFakeStorage({ [DRAFT_STORAGE_KEY]: "{ not json" }),
-    );
-
-    await expect(persistence.load()).resolves.toBeUndefined();
-  });
-
-  it("rejects storage contents that do not match the draft shape", async () => {
-    const persistence = createWebStorageDraftPersistence(
-      createFakeStorage({
-        [DRAFT_STORAGE_KEY]: JSON.stringify({
-          site: { name: 7 },
-          products: [],
-        }),
-      }),
+      createFakeStorage({ [DRAFT_STORAGE_KEY]: raw }),
     );
 
     await expect(persistence.load()).resolves.toBeUndefined();
   });
 
   it("drops stale keys of stored contents that otherwise fit the draft shape", async () => {
-    const stale = { ...draftWith({}), deprecatedField: "Legacy" };
+    const stale = { ...draftWith(), deprecatedField: "Legacy" };
     const persistence = createWebStorageDraftPersistence(
       createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(stale) }),
     );
 
-    await expect(persistence.load()).resolves.toEqual(draftWith({}));
+    await expect(persistence.load()).resolves.toEqual(draftWith());
   });
 
   it("reports failing reads as an empty draft", async () => {
@@ -198,6 +143,6 @@ describe("createWebStorageDraftPersistence", () => {
       },
     } satisfies FakeStorage);
 
-    await expect(persistence.save(draftWith({}))).resolves.toBeUndefined();
+    await expect(persistence.save(draftWith())).resolves.toBeUndefined();
   });
 });
