@@ -1,5 +1,7 @@
 ---
-import { Button } from "@/components/ui/button";
+import ConfigEditor from "@/features/builder/ConfigEditor";
+import type { BuilderTexts } from "@/features/builder/builder-texts";
+import { Toaster } from "@/components/ui/toast";
 
 /**
  * Localized strings for the home page.
@@ -9,10 +11,10 @@ import { Button } from "@/components/ui/button";
  * between locales.
  */
 export interface HomeTexts {
-  /** Site display name shown as the main heading. */
-  siteName: string;
   /** Human-readable page title, used for `<title>` and meta description. */
   pageTitle: string;
+  /** Localized strings of the configuration editor island. */
+  editor: BuilderTexts;
 }
 
 interface Props {
@@ -23,7 +25,5 @@ interface Props {
 const { texts } = Astro.props;
 ---
 
-<h1>{texts.siteName}</h1>
-<h2>{Astro.currentLocale}</h2>
-
-<Button>Button</Button>
+<ConfigEditor client:load texts={texts.editor} />
+<Toaster client:load />

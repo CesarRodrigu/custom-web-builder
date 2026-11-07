@@ -4,7 +4,7 @@
  * declared once.
  */
 /** Display name of the site, used in the page title and the Open Graph tags. */
-export const siteName = "Astro";
+export const siteName = "Custom Web Builder";
 
 /**
  * `hreflang` value advertised for each locale, keyed by its URL segment.

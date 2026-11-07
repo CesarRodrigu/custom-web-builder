@@ -15,18 +15,14 @@ const env = loadEnv(
   "SITE_URL",
 );
 
-// https://astro.build/config
 export default defineConfig({
-  site: isDevelopment
-    ? "http://localhost:4321"
-    : env.SITE_URL || "https://example.com",
-
+  site: isDevelopment || !env.SITE_URL ? "http://localhost:4321" : env.SITE_URL,
   i18n: {
     locales,
     defaultLocale,
     routing: {
       prefixDefaultLocale: true,
-      redirectToDefaultLocale: true,
+      redirectToDefaultLocale: false,
     },
   },
 
