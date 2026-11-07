@@ -8,7 +8,7 @@ import type { BuilderTexts } from "@/features/builder/builder-texts";
 import { siteInputId } from "@/features/builder/editor-section";
 import { Empty, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
 import { PackageOpen } from "lucide-react";
-import type { SiteMetaDraft } from "@/lib/catalog/schema";
+import { SiteTextField, type SiteMetaDraft } from "@/lib/catalog/schema";
 
 /** Props of the site configuration page. */
 interface SiteSectionProps {
@@ -40,33 +40,33 @@ export function SiteSection(props: Readonly<SiteSectionProps>) {
       <h2 className="text-lg font-semibold">{texts.siteSection}</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
-          id={siteInputId("name")}
+          id={siteInputId(SiteTextField.Name)}
           label={texts.siteNameLabel}
           placeholder={texts.siteNamePlaceholder}
           description={texts.siteNameHint}
           required
           value={site.name}
-          errorText={getError("site.name")}
-          onChange={(value) => onChange("name", value)}
+          errorText={getError(`site.${SiteTextField.Name}`)}
+          onChange={(value) => onChange(SiteTextField.Name, value)}
         />
         <TextField
-          id={siteInputId("contactEmail")}
+          id={siteInputId(SiteTextField.ContactEmail)}
           label={texts.siteContactEmailLabel}
           placeholder={texts.siteContactEmailPlaceholder}
           description={texts.siteContactEmailHint}
           value={site.contactEmail}
-          errorText={getError("site.contactEmail")}
-          onChange={(value) => onChange("contactEmail", value)}
+          errorText={getError(`site.${SiteTextField.ContactEmail}`)}
+          onChange={(value) => onChange(SiteTextField.ContactEmail, value)}
         />
       </div>
       <BigTextField
-        id={siteInputId("description")}
+        id={siteInputId(SiteTextField.Description)}
         label={texts.siteDescriptionLabel}
         placeholder={texts.siteDescriptionPlaceholder}
         description={texts.siteDescriptionHint}
         value={site.description}
-        errorText={getError("site.description")}
-        onChange={(value) => onChange("description", value)}
+        errorText={getError(`site.${SiteTextField.Description}`)}
+        onChange={(value) => onChange(SiteTextField.Description, value)}
       />
       {!hasProducts && (
         <Empty className="border">

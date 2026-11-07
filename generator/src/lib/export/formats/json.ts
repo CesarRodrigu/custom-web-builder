@@ -16,9 +16,9 @@ function serialize(value: unknown): string {
 }
 
 /** JSON format registered in the export registry. */
-export const jsonFormat: ExportFormat = {
+export const jsonFormat = {
   id: "json",
   mimeType: "application/zip",
   fileExtension: "json",
   serialize,
-} as const;
+} as const satisfies ExportFormat;

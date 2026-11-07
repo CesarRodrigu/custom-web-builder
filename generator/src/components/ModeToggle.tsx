@@ -9,8 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
 
-/** Theme selected in the mode toggle. */
-type Theme = "theme-light" | "dark" | "system";
+import { DARK_THEME_CLASS, Theme } from "@/config/theme";
 
 /**
  * Reads the theme currently applied to the document root, safe for the server
@@ -18,10 +17,10 @@ type Theme = "theme-light" | "dark" | "system";
  * @returns The detected theme, defaulting to light before the app mounts.
  */
 function readTheme(): Theme {
-  if (typeof document === "undefined") return "theme-light";
-  return document.documentElement.classList.contains("dark")
-    ? "dark"
-    : "theme-light";
+  if (typeof document === "undefined") return Theme.Light;
+  return document.documentElement.classList.contains(DARK_THEME_CLASS)
+    ? Theme.Dark
+    : Theme.Light;
 }
 
 /**
@@ -34,10 +33,12 @@ export function ModeToggle() {
 
   useEffect(() => {
     const isDark =
-      theme === "dark" ||
-      (theme === "system" &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList[isDark ? "add" : "remove"]("dark");
+      theme === Theme.Dark ||
+      (theme === Theme.System &&
+        window.matchMedia(`(prefers-color-scheme: ${Theme.Dark})`).matches);
+    document.documentElement.classList[isDark ? "add" : "remove"](
+      DARK_THEME_CLASS,
+    );
   }, [theme]);
 
   return (
@@ -50,13 +51,13 @@ export function ModeToggle() {
         <span className="sr-only">Toggle theme</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("theme-light")}>
+        <DropdownMenuItem onClick={() => setTheme(Theme.Light)}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => setTheme(Theme.Dark)}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => setTheme(Theme.System)}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

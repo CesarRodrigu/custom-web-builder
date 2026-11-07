@@ -17,6 +17,7 @@ import EditorSidebar from "@/features/builder/layout/EditorSidebar";
 import EditorTopBar from "@/features/builder/layout/EditorTopBar";
 import type { BuilderTexts } from "@/features/builder/builder-texts";
 import {
+  EditorSectionKind,
   goTo,
   productInputId,
   siteInputId,
@@ -30,13 +31,19 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import {
   nextProductId,
   parseSiteConfig,
+  ProductTextField,
+  SiteTextField,
+  ValidationCode,
   type ProductDraft,
   type SiteConfigDraft,
   type SiteConfigValidation,
   type SiteMetaDraft,
-  type ValidationCode,
 } from "@/lib/catalog/schema";
-import { buildFileTree, type FileTreeNode } from "@/lib/catalog/tree";
+import {
+  buildFileTree,
+  FileTreeNodeType,
+  type FileTreeNode,
+} from "@/lib/catalog/tree";
 import { getDraftPersistence } from "@/lib/catalog/persistence/draft-persistence";
 
 /** Props of the configuration editor island. */
@@ -117,7 +124,9 @@ function toTreeErrors(validation: SiteConfigValidation): {
 export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
   const { texts } = props;
   const [draft, setDraft] = useState<SiteConfigDraft>(createEmptyDraft);
-  const [section, setSection] = useState<EditorSection>({ kind: "config" });
+  const [section, setSection] = useState<EditorSection>({
+    kind: EditorSectionKind.Config,
+  });
   const [isDraftLoaded, setIsDraftLoaded] = useState(false);
 
   /**
@@ -159,12 +168,12 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
     [validation],
   );
   const messages: Record<ValidationCode, string> = {
-    required: texts.errorRequired,
-    email: texts.errorEmail,
-    price: texts.errorPrice,
-    url: texts.errorUrl,
-    category: texts.errorCategory,
-    duplicate: texts.errorDuplicate,
+    [ValidationCode.Required]: texts.errorRequired,
+    [ValidationCode.Email]: texts.errorEmail,
+    [ValidationCode.Price]: texts.errorPrice,
+    [ValidationCode.Url]: texts.errorUrl,
+    [ValidationCode.Category]: texts.errorCategory,
+    [ValidationCode.Duplicate]: texts.errorDuplicate,
   };
 
   /**
@@ -194,7 +203,7 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
 
   const sectionKey = toSectionKey(section);
   const selectedProductIndex =
-    section.kind === "product" ? section.index : undefined;
+    section.kind === EditorSectionKind.Product ? section.index : undefined;
 
   /**
    * Localized validation message of one draft field, or `undefined` while the
@@ -227,7 +236,7 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
    */
   function updateProduct(
     index: number,
-    field: "name" | "description" | "price" | "imageUrl",
+    field: ProductTextField,
     value: string,
   ): void {
     setDraft((current) => ({
@@ -264,7 +273,7 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
       ...current,
       products: [...current.products, createEmptyProduct(id)],
     }));
-    setSection({ kind: "product", index });
+    setSection({ kind: EditorSectionKind.Product, index });
   }
 
   /**
@@ -281,10 +290,13 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
       ),
     }));
     setSection((current) => {
-      if (current.kind !== "product") return current;
-      if (current.index === index) return { kind: "config" };
+      if (current.kind !== EditorSectionKind.Product) return current;
+      if (current.index === index) return { kind: EditorSectionKind.Config };
       if (current.index > index)
-        return { kind: "product", index: current.index - 1 };
+        return {
+          kind: EditorSectionKind.Product,
+          index: current.index - 1,
+        };
       return current;
     });
   }
@@ -296,11 +308,14 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
    * @param node File tree node the user selected.
    */
   function selectFileNode(node: FileTreeNode): void {
-    if (node.type === "file" && node.productIndex !== undefined) {
-      setSection({ kind: "product", index: node.productIndex });
+    if (
+      node.type === FileTreeNodeType.File &&
+      node.productIndex !== undefined
+    ) {
+      setSection({ kind: EditorSectionKind.Product, index: node.productIndex });
       return;
     }
-    setSection({ kind: "config" });
+    setSection({ kind: EditorSectionKind.Config });
   }
 
   /**
@@ -308,10 +323,10 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
    * so every section starts ready for typing.
    */
   useEffect(() => {
-    if (section.kind === "export") goTo("export-format");
-    else if (section.kind === "product")
-      goTo(productInputId(section.index, "name"));
-    else goTo(siteInputId("name"));
+    if (section.kind === EditorSectionKind.Export) goTo("export-format");
+    else if (section.kind === EditorSectionKind.Product)
+      goTo(productInputId(section.index, ProductTextField.Name));
+    else goTo(siteInputId(SiteTextField.Name));
   }, [sectionKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -330,10 +345,10 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
       <SidebarInset>
         <EditorTopBar
           texts={texts}
-          onOpenExport={() => setSection({ kind: "export" })}
+          onOpenExport={() => setSection({ kind: EditorSectionKind.Export })}
         />
         <main className="mx-auto flex w-full max-w-2xl flex-col gap-10 px-4 pb-10 pt-6">
-          {section.kind === "config" && (
+          {section.kind === EditorSectionKind.Config && (
             <SiteSection
               texts={texts}
               site={draft.site}
@@ -342,23 +357,24 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
               onChange={updateSite}
             />
           )}
-          {section.kind === "product" && draft.products[section.index] && (
-            <ProductSection
-              texts={texts}
-              index={section.index}
-              product={draft.products[section.index]}
-              categorySuggestions={categorySuggestions}
-              getError={errorText}
-              onChange={(field, value) =>
-                updateProduct(section.index, field, value)
-              }
-              onCategoriesChange={(categories) =>
-                updateCategories(section.index, categories)
-              }
-              onRemove={() => removeProduct(section.index)}
-            />
-          )}
-          {section.kind === "export" && (
+          {section.kind === EditorSectionKind.Product &&
+            draft.products[section.index] && (
+              <ProductSection
+                texts={texts}
+                index={section.index}
+                product={draft.products[section.index]}
+                categorySuggestions={categorySuggestions}
+                getError={errorText}
+                onChange={(field, value) =>
+                  updateProduct(section.index, field, value)
+                }
+                onCategoriesChange={(categories) =>
+                  updateCategories(section.index, categories)
+                }
+                onRemove={() => removeProduct(section.index)}
+              />
+            )}
+          {section.kind === EditorSectionKind.Export && (
             <ExportView texts={texts} validation={validation} />
           )}
         </main>

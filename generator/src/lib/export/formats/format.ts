@@ -14,10 +14,19 @@ import type { ExportFormat } from "@/lib/export/types";
 export type { ExportFormat } from "@/lib/export/types";
 
 /** Formats the configuration can be exported to, in the order the UI shows them. */
-export const exportFormats: readonly ExportFormat[] = [jsonFormat, yamlFormat];
+export const exportFormats = [
+  jsonFormat,
+  yamlFormat,
+] as const satisfies readonly ExportFormat[];
+
+/** One format registered in the registry. */
+export type RegisteredExportFormat = (typeof exportFormats)[number];
 
 /** Identifier union of every registered format, derived from the registry. */
-export type ExportFormatId = (typeof exportFormats)[number]["id"];
+export type ExportFormatId = RegisteredExportFormat["id"];
+
+/** Format selected when the editor opens: the first entry of the registry. */
+export const defaultExportFormat = exportFormats[0];
 
 /**
  * Looks up an export format by identifier.

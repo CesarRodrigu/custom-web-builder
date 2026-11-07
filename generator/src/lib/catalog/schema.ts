@@ -14,9 +14,28 @@ const PRICE_PATTERN = /^\d+(?:[.,]\d{1,2})?$/;
 /** HTTP(S) URL accepted for product images. */
 const IMAGE_URL_PATTERN = /^https?:\/\/\S+$/;
 
-/** Stable reason codes for draft issues; the editor maps each to a localized message. */
+/**
+ * Stable reason codes for draft issues: the same value is the message attached
+ * to the Zod issue and the code the editor maps to a localized message.
+ */
+export const ValidationCode = {
+  /** A required field is blank. */
+  Required: "required",
+  /** The contact email is malformed. */
+  Email: "email",
+  /** The price is not a non-negative number with up to two decimals. */
+  Price: "price",
+  /** The image URL is not an HTTP(S) URL. */
+  Url: "url",
+  /** A category path contains a blank segment. */
+  Category: "category",
+  /** Another product of the catalog already uses the same name. */
+  Duplicate: "duplicate",
+} as const;
+
+/** Stable reason code of one draft issue. */
 export type ValidationCode =
-  "required" | "email" | "price" | "url" | "category" | "duplicate";
+  (typeof ValidationCode)[keyof typeof ValidationCode];
 
 /** A single validation issue found in one field of the draft. */
 export interface FieldIssue {
@@ -62,6 +81,25 @@ export interface ProductDraft {
   imageUrl: string;
 }
 
+/**
+ * Plain text fields of a product that the editor edits with one input each;
+ * categories and the editor-only id are handled by their own controls.
+ */
+export const ProductTextField = {
+  /** Display name of the product. */
+  Name: "name",
+  /** Free text shown under the name. */
+  Description: "description",
+  /** Non-negative price as typed by the user. */
+  Price: "price",
+  /** URL of the product image. */
+  ImageUrl: "imageUrl",
+} as const satisfies Record<string, keyof ProductDraft>;
+
+/** Plain text field of a product that the editor edits with one input. */
+export type ProductTextField =
+  (typeof ProductTextField)[keyof typeof ProductTextField];
+
 /** Raw site metadata as edited in the form, before normalization. */
 export interface SiteMetaDraft {
   /** Display name of the generated site; required. */
@@ -71,6 +109,19 @@ export interface SiteMetaDraft {
   /** Contact email shown on the site; blank is omitted on export. */
   contactEmail: string;
 }
+
+/** Text fields of the site metadata that the editor edits with one input each. */
+export const SiteTextField = {
+  /** Display name of the generated site. */
+  Name: "name",
+  /** Free text describing the business. */
+  Description: "description",
+  /** Contact email shown on the site. */
+  ContactEmail: "contactEmail",
+} as const satisfies Record<string, keyof SiteMetaDraft>;
+
+/** Text field of the site metadata that the editor edits with one input. */
+export type SiteTextField = (typeof SiteTextField)[keyof typeof SiteTextField];
 
 /** Raw site configuration as edited in the form, before normalization. */
 export interface SiteConfigDraft {
@@ -167,12 +218,19 @@ const isValidCategoryPath = (value: string): boolean => {
 export const productDraftSchema = z.object({
   id: z
     .number()
-    .refine((value) => Number.isInteger(value) && value > 0, "required"),
-  name: z.string().refine(isFilled, "required"),
-  categories: z.array(z.string().refine(isValidCategoryPath, "category")),
+    .refine(
+      (value) => Number.isInteger(value) && value > 0,
+      ValidationCode.Required,
+    ),
+  name: z.string().refine(isFilled, ValidationCode.Required),
+  categories: z.array(
+    z.string().refine(isValidCategoryPath, ValidationCode.Category),
+  ),
   description: z.string(),
-  price: z.string().refine(matches(PRICE_PATTERN), "price"),
-  imageUrl: z.string().refine(isEmptyOr(matches(IMAGE_URL_PATTERN)), "url"),
+  price: z.string().refine(matches(PRICE_PATTERN), ValidationCode.Price),
+  imageUrl: z
+    .string()
+    .refine(isEmptyOr(matches(IMAGE_URL_PATTERN)), ValidationCode.Url),
 });
 
 /**
@@ -192,14 +250,14 @@ export function nextProductId(products: ProductDraft[]): number {
  */
 export const siteConfigDraftSchema = z.object({
   site: z.object({
-    name: z.string().refine(isFilled, "required"),
+    name: z.string().refine(isFilled, ValidationCode.Required),
     description: z.string(),
     contactEmail: z
       .string()
       .refine(
         (value) =>
           value.trim() === "" || z.email().safeParse(value.trim()).success,
-        "email",
+        ValidationCode.Email,
       ),
   }),
   products: z.array(productDraftSchema),
@@ -225,8 +283,25 @@ export function toDuplicateNameIssues(draft: SiteConfigDraft): FieldIssue[] {
   return draft.products.flatMap((product, index) => {
     const name = product.name.trim().toLowerCase();
     if (name === "" || (nameCounts.get(name) ?? 0) <= 1) return [];
-    return [{ field: `products.${index}.name`, code: "duplicate" }];
+    return [
+      { field: `products.${index}.name`, code: ValidationCode.Duplicate },
+    ];
   });
+}
+
+/**
+ * Reads a Zod issue message back as a stable validation code. Every rule of
+ * the schemas above emits one of the codes, so a message outside the known
+ * codes means the value did not even match the field shape; it is reported as a
+ * required issue so the field is still marked instead of passing silently.
+ * @param message Message attached to the Zod issue.
+ * @returns The matching validation code, or `required` as a fallback.
+ */
+function toValidationCode(message: string): ValidationCode {
+  return (
+    Object.values(ValidationCode).find((code) => code === message) ??
+    ValidationCode.Required
+  );
 }
 
 /**
@@ -246,7 +321,7 @@ export function parseSiteConfig(draft: SiteConfigDraft): SiteConfigValidation {
   if (!result.success) {
     const schemaIssues = result.error.issues.map((issue) => ({
       field: issue.path.map(String).join("."),
-      code: issue.message as ValidationCode,
+      code: toValidationCode(issue.message),
     }));
     return {
       valid: false,

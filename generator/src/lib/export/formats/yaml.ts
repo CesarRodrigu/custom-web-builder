@@ -66,9 +66,9 @@ function serialize(value: unknown): string {
 }
 
 /** YAML format registered in the export registry. */
-export const yamlFormat: ExportFormat = {
+export const yamlFormat = {
   id: "yaml",
   mimeType: "application/zip",
   fileExtension: "yaml",
   serialize,
-} as const;
+} as const satisfies ExportFormat;

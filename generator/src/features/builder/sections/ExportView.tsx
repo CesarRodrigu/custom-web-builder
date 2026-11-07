@@ -19,10 +19,12 @@ import {
 } from "@/components/ui/combobox";
 import { buildExportFileName } from "@/lib/export/archive";
 import {
-  getExportFormat,
+  defaultExportFormat,
   exportFormats,
+  getExportFormat,
   type ExportFormat,
   type ExportFormatId,
+  type RegisteredExportFormat,
 } from "@/lib/export/formats/format";
 import { buildSiteFileMap } from "@/lib/export/package";
 import type { SiteConfig, SiteConfigValidation } from "@/lib/catalog/schema";
@@ -98,8 +100,10 @@ async function downloadConfiguration(
  */
 export default function ExportView(props: Readonly<ExportViewProps>) {
   const { texts, validation } = props;
-  const [formatId, setFormatId] = useState<ExportFormatId>("json");
-  const format = getExportFormat(formatId) ?? exportFormats[0];
+  const [formatId, setFormatId] = useState<ExportFormatId>(
+    defaultExportFormat.id,
+  );
+  const format = getExportFormat(formatId) ?? defaultExportFormat;
 
   return (
     <section className="flex flex-col gap-4">
@@ -119,7 +123,7 @@ export default function ExportView(props: Readonly<ExportViewProps>) {
             }
             value={format}
             onValueChange={(selected) => {
-              const selectedFormat = selected as ExportFormat;
+              const selectedFormat = selected as RegisteredExportFormat;
               setFormatId(selectedFormat.id);
             }}
           >

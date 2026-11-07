@@ -9,7 +9,7 @@ import BigTextField from "@/features/builder/fields/BigTextField";
 import TextField from "@/features/builder/fields/TextField";
 import RemoveProductButton from "@/features/builder/components/RemoveProductButton";
 import { Button } from "@/components/ui/button";
-import type { ProductDraft } from "@/lib/catalog/schema";
+import { ProductTextField, type ProductDraft } from "@/lib/catalog/schema";
 
 /** Props of one product page. */
 interface ProductSectionProps {
@@ -25,10 +25,7 @@ interface ProductSectionProps {
    */
   getError: (field: string) => string | undefined;
   /** Called with the field and its new value whenever the user types. */
-  onChange: (
-    field: "name" | "description" | "price" | "imageUrl",
-    value: string,
-  ) => void;
+  onChange: (field: ProductTextField, value: string) => void;
   /** Called with the full category list whenever the category selection changes. */
   onCategoriesChange: (categories: string[]) => void;
   /** Called when the user removes this product from the catalog. */
@@ -62,34 +59,34 @@ export function ProductSection(props: Readonly<ProductSectionProps>) {
       </h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
-          id={productInputId(index, "name")}
+          id={productInputId(index, ProductTextField.Name)}
           label={texts.productNameLabel}
           placeholder={texts.productNamePlaceholder}
           description={texts.productNameHint}
           required
           value={product.name}
-          errorText={getError(`products.${index}.name`)}
-          onChange={(value) => onChange("name", value)}
+          errorText={getError(`products.${index}.${ProductTextField.Name}`)}
+          onChange={(value) => onChange(ProductTextField.Name, value)}
         />
         <TextField
-          id={productInputId(index, "price")}
+          id={productInputId(index, ProductTextField.Price)}
           label={texts.productPriceLabel}
           placeholder={texts.productPricePlaceholder}
           description={texts.productPriceHint}
           required
           value={product.price}
-          errorText={getError(`products.${index}.price`)}
-          onChange={(value) => onChange("price", value)}
+          errorText={getError(`products.${index}.${ProductTextField.Price}`)}
+          onChange={(value) => onChange(ProductTextField.Price, value)}
         />
       </div>
       <TextField
-        id={productInputId(index, "imageUrl")}
+        id={productInputId(index, ProductTextField.ImageUrl)}
         label={texts.productImageUrlLabel}
         placeholder={texts.productImageUrlPlaceholder}
         description={texts.productImageUrlHint}
         value={product.imageUrl}
-        errorText={getError(`products.${index}.imageUrl`)}
-        onChange={(value) => onChange("imageUrl", value)}
+        errorText={getError(`products.${index}.${ProductTextField.ImageUrl}`)}
+        onChange={(value) => onChange(ProductTextField.ImageUrl, value)}
       />
       <CategoryField
         index={index}
@@ -100,13 +97,15 @@ export function ProductSection(props: Readonly<ProductSectionProps>) {
         texts={texts}
       />
       <BigTextField
-        id={productInputId(index, "description")}
+        id={productInputId(index, ProductTextField.Description)}
         label={texts.productDescriptionLabel}
         placeholder={texts.productDescriptionPlaceholder}
         description={texts.productDescriptionHint}
         value={product.description}
-        errorText={getError(`products.${index}.description`)}
-        onChange={(value) => onChange("description", value)}
+        errorText={getError(
+          `products.${index}.${ProductTextField.Description}`,
+        )}
+        onChange={(value) => onChange(ProductTextField.Description, value)}
       />
       <div>
         <RemoveProductButton

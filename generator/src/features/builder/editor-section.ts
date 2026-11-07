@@ -8,20 +8,34 @@
  */
 import type { ProductDraft, SiteMetaDraft } from "@/lib/catalog/schema";
 
+/** Kinds of page the editor can show on its main area. */
+export const EditorSectionKind = {
+  /** The site configuration page. */
+  Config: "config",
+  /** One product page, by position within the catalog. */
+  Product: "product",
+  /** The export page, where the format is chosen and the download starts. */
+  Export: "export",
+} as const;
+
+/** Kind of page currently open on the main area of the editor. */
+export type EditorSectionKind =
+  (typeof EditorSectionKind)[keyof typeof EditorSectionKind];
+
 /** Section currently open on the main area of the editor. */
 export type EditorSection =
   | {
       /** The site configuration page. */
-      kind: "config";
+      kind: typeof EditorSectionKind.Config;
     }
   | {
       /** One product page, by position within the catalog. */
-      kind: "product";
+      kind: typeof EditorSectionKind.Product;
       index: number;
     }
   | {
       /** The export page, where the format is chosen and the download starts. */
-      kind: "export";
+      kind: typeof EditorSectionKind.Export;
     };
 
 /**
@@ -30,7 +44,9 @@ export type EditorSection =
  * @returns String identifier of the section and its index.
  */
 export function toSectionKey(section: EditorSection): string {
-  return section.kind === "product" ? `product-${section.index}` : section.kind;
+  return section.kind === EditorSectionKind.Product
+    ? `product-${section.index}`
+    : section.kind;
 }
 
 /**

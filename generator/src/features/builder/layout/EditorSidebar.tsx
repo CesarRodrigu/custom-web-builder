@@ -20,7 +20,8 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { siteName } from "@/config/site";
-import { PRODUCTS_FOLDER, type FileTreeNode } from "@/lib/catalog/tree";
+import { FileTreeNodeType, type FileTreeNode } from "@/lib/catalog/tree";
+import { PRODUCTS_FOLDER } from "@/lib/export/package";
 
 /** Props of the editor sidebar. */
 interface EditorSidebarProps {
@@ -73,7 +74,7 @@ export function EditorSidebar(props: Readonly<EditorSidebarProps>) {
    * @returns The row action, when the row has one.
    */
   function renderRowAction(node: FileTreeNode): ReactNode {
-    if (node.type === "file") {
+    if (node.type === FileTreeNodeType.File) {
       const productIndex = node.productIndex;
       if (productIndex === undefined) return undefined;
       return (
@@ -122,7 +123,8 @@ export function EditorSidebar(props: Readonly<EditorSidebarProps>) {
               {fileTree.map((node) => (
                 <TreeViewNode
                   key={
-                    node.type === "file" && node.productId !== undefined
+                    node.type === FileTreeNodeType.File &&
+                    node.productId !== undefined
                       ? `product-${node.productId}:${node.path}`
                       : node.path
                   }

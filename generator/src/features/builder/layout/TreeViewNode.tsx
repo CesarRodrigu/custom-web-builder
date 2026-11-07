@@ -22,7 +22,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import type { FileTreeNode } from "@/lib/catalog/tree";
+import { FileTreeNodeType, type FileTreeNode } from "@/lib/catalog/tree";
 
 /** Props of one interactive file tree node row. */
 export interface TreeViewNodeProps {
@@ -56,7 +56,7 @@ function nodeHasError(
   siteHasError: boolean,
   productsWithErrors: ReadonlySet<number>,
 ): boolean {
-  if (node.type === "file") {
+  if (node.type === FileTreeNodeType.File) {
     if (node.productIndex === undefined) {
       return siteHasError;
     }
@@ -83,7 +83,7 @@ export function TreeViewNode(props: Readonly<TreeViewNodeProps>) {
   } = props;
   const invalid = nodeHasError(node, siteHasError, productsWithErrors);
   const rowAction = renderRowAction?.(node);
-  if (node.type === "file") {
+  if (node.type === FileTreeNodeType.File) {
     const active =
       node.productIndex === undefined
         ? selectedProductIndex === undefined

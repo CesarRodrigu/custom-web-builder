@@ -10,17 +10,33 @@
  * never shifts the names below it) while the export uses the catalog
  * position of the validated configuration.
  */
-import { SITE_FILE, toProductPaths } from "@/lib/export/package";
+import {
+  PRODUCTS_FOLDER,
+  SITE_FILE,
+  toProductPaths,
+} from "@/lib/export/package";
 import {
   toCategorySegments,
   type Product,
   type SiteConfigDraft,
 } from "@/lib/catalog/schema";
 
+/** Kinds of node of the package tree. */
+export const FileTreeNodeType = {
+  /** Expandable folder that holds other nodes. */
+  Folder: "folder",
+  /** Selectable file that opens the page behind it. */
+  File: "file",
+} as const;
+
+/** Kind of node of the package tree. */
+export type FileTreeNodeType =
+  (typeof FileTreeNodeType)[keyof typeof FileTreeNodeType];
+
 /** One folder of the package tree, expandable in the sidebar. */
 export interface FolderNode {
   /** Node discriminator. */
-  type: "folder";
+  type: typeof FileTreeNodeType.Folder;
   /** Display name of the folder, e.g. `tartas`. */
   name: string;
   /** Package path of the folder, e.g. `products/dulces/tartas`. */
@@ -32,7 +48,7 @@ export interface FolderNode {
 /** One file of the package tree, selectable in the sidebar. */
 export interface FileNode {
   /** Node discriminator. */
-  type: "file";
+  type: typeof FileTreeNodeType.File;
   /** Display name of the file, e.g. `tarta-de-manzana.json`. */
   name: string;
   /** Package path of the file, e.g. `products/dulces/tartas/tarta.json`. */
@@ -49,9 +65,6 @@ export interface FileNode {
 
 /** Any node of the package tree: either a folder or a file. */
 export type FileTreeNode = FolderNode | FileNode;
-
-/** Package path and display name of the products folder, the tree root that holds every product file. */
-export const PRODUCTS_FOLDER = "products";
 
 /**
  * Inserts one package path into a folder tree, creating the nested folder
@@ -72,7 +85,7 @@ function insertPath(
   const [head, ...rest] = segments;
   if (rest.length === 0) {
     folder.children.push({
-      type: "file",
+      type: FileTreeNodeType.File,
       name: toFileNodeName(head),
       path,
       productIndex,
@@ -81,11 +94,12 @@ function insertPath(
     return;
   }
   let child = folder.children.find(
-    (node): node is FolderNode => node.type === "folder" && node.name === head,
+    (node): node is FolderNode =>
+      node.type === FileTreeNodeType.Folder && node.name === head,
   );
   if (!child) {
     child = {
-      type: "folder",
+      type: FileTreeNodeType.Folder,
       name: head,
       path: `${folder.path}/${head}`,
       children: [],
@@ -115,7 +129,7 @@ function toFileNodeName(fileName: string): string {
  */
 export function buildFileTree(draft: SiteConfigDraft): FileTreeNode[] {
   const productsFolder: FolderNode = {
-    type: "folder",
+    type: FileTreeNodeType.Folder,
     name: PRODUCTS_FOLDER,
     path: PRODUCTS_FOLDER,
     children: [],
@@ -137,7 +151,11 @@ export function buildFileTree(draft: SiteConfigDraft): FileTreeNode[] {
     }
   });
   return [
-    { type: "file", name: toFileNodeName(SITE_FILE), path: SITE_FILE },
+    {
+      type: FileTreeNodeType.File,
+      name: toFileNodeName(SITE_FILE),
+      path: SITE_FILE,
+    },
     productsFolder,
   ];
 }

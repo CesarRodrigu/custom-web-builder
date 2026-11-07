@@ -11,13 +11,13 @@
  */
 import { toSlug } from "@/lib/metadata";
 import {
-  getExportFormat,
+  defaultExportFormat,
   type ExportFormat,
 } from "@/lib/export/formats/format";
 import type { Product, SiteConfig } from "@/lib/catalog/schema";
 
 /** Folder that holds the products of the catalog, nested by category levels. */
-const PRODUCTS_FOLDER = "products";
+export const PRODUCTS_FOLDER = "products";
 
 /** Name of the single configuration file of the site. */
 export const SITE_FILE = "site.json";
@@ -88,7 +88,7 @@ function toCategoryFolder(path: string[]): string {
 export function toProductPaths(
   product: Product,
   fallbackNumber: number,
-  format: ExportFormat = getExportFormat("json")!,
+  format: ExportFormat = defaultExportFormat,
 ): string[] {
   const fileName = toProductFileName(product, fallbackNumber, format);
   return product.categories.length === 0
@@ -108,7 +108,7 @@ export function toProductPaths(
  */
 export function buildSiteFileMap(
   config: SiteConfig,
-  format: ExportFormat = getExportFormat("json")!,
+  format: ExportFormat = defaultExportFormat,
 ): Record<string, string> {
   const siteFile = `site.${format.fileExtension}`;
   const files: Record<string, string> = {
