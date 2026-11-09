@@ -6,11 +6,13 @@ on:
     paths:
       - "generator/**"
       - "catalog/**"
+      - "front-end/**"
   pull_request:
     branches: [main]
     paths:
       - "generator/**"
       - "catalog/**"
+      - "front-end/**"
   workflow_dispatch:
 
 permissions:
@@ -18,6 +20,7 @@ permissions:
 
 env:
   GENERATOR_PROJECT_DIR: generator
+  FRONTEND_PROJECT_DIR: front-end
   CATALOGUE_PROJECT_DIR: catalog
 
 concurrency:
@@ -25,6 +28,61 @@ concurrency:
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 
 jobs:
+  test-frontend:
+    name: JavaScript/TypeScript tests and coverage (frontend)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_PROJECT_DIR }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm and Node.js
+        uses: pnpm/setup@v3
+        with:
+          version: 12
+          runtime: node@26
+          working-directory: ${{ env.FRONTEND_PROJECT_DIR }}
+          cache: true
+          cache-dependency-path: ${{ env.FRONTEND_PROJECT_DIR }}/pnpm-lock.yaml
+          require-lockfile: true
+
+      - name: Run unit tests with coverage
+        run: pnpm test:unit:coverage
+
+      - name: Upload JS coverage report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ env.FRONTEND_PROJECT_DIR }}-coverage
+          path: ${{ env.FRONTEND_PROJECT_DIR }}/coverage/lcov.info
+          retention-days: 7
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles(format('{0}/pnpm-lock.yaml', env.FRONTEND_PROJECT_DIR)) }}
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps
+
+      - name: Install OS dependencies for browsers
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps
+
+      - name: Run end-to-end tests
+        run: pnpm test:e2e
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ env.FRONTEND_PROJECT_DIR }}-playwright-report
+          path: ${{ env.FRONTEND_PROJECT_DIR }}/playwright-report/
+          retention-days: 7
   test-generator:
     name: JavaScript/TypeScript tests and coverage (generator)
     runs-on: ubuntu-latest
@@ -35,7 +93,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup pnpm and Node.js
         uses: pnpm/setup@v3
@@ -49,6 +107,14 @@ jobs:
 
       - name: Run unit tests with coverage
         run: pnpm test:unit:coverage
+
+      - name: Upload JS coverage report
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: ${{ env.GENERATOR_PROJECT_DIR }}-coverage
+          path: ${{ env.GENERATOR_PROJECT_DIR }}/coverage/lcov.info
+          retention-days: 7
 
       - name: Cache Playwright browsers
         id: playwright-cache
@@ -66,17 +132,8 @@ jobs:
 
       - name: Run end-to-end tests
         run: pnpm test:e2e
-
-      - name: Upload JS coverage report
-        uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: ${{ env.GENERATOR_PROJECT_DIR }}-coverage
-          path: ${{ env.GENERATOR_PROJECT_DIR }}/coverage/lcov.info
-          retention-days: 7
-
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: ${{ env.GENERATOR_PROJECT_DIR }}-playwright-report
@@ -89,7 +146,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Java
         uses: actions/setup-java@v6
@@ -103,7 +160,7 @@ jobs:
         run: mvn -B verify -Pcoverage
 
       - name: Upload Java coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: ${{ env.CATALOGUE_PROJECT_DIR }}-coverage
@@ -119,24 +176,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Download JS coverage report
-        uses: actions/download-artifact@v4
+      - name: Download JS coverage report (generator)
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.GENERATOR_PROJECT_DIR }}-coverage
           path: ${{ env.GENERATOR_PROJECT_DIR }}/coverage
+      - name: Download JS coverage report (frontend)
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.FRONTEND_PROJECT_DIR }}-coverage
+          path: ${{ env.FRONTEND_PROJECT_DIR }}/coverage
 
       - name: Download Java coverage report
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ env.CATALOGUE_PROJECT_DIR }}-coverage
           path: ${{ env.CATALOGUE_PROJECT_DIR }}/target/
 
       - name: SonarQube scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
         with:
           projectBaseDir: .
         env:
