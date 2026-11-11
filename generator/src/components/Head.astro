@@ -45,6 +45,7 @@ const alternates = buildLocaleAlternates(
 <meta property="og:description" content={metaDescription} />
 <meta property="og:url" content={canonicalUrl} />
 
+{import.meta.env.DEV && (
 <script is:inline>
   if (!navigator.webdriver) {
     const scanScript = document.createElement("script");
@@ -53,3 +54,4 @@ const alternates = buildLocaleAlternates(
     document.head.append(scanScript);
   }
 </script>
+)}

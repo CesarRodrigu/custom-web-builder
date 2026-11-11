@@ -1,0 +1,31 @@
+---
+import { Separator } from "@/components/ui/separator";
+
+interface Props {
+  /** Display name of the site, shown in the copyright notice. */
+  siteName: string;
+  /** Contact email of the site, when provided. */
+  contactEmail?: string;
+  /** Label shown before the contact email. */
+  contactLabel: string;
+  /** Copyright notice of the site. */
+  rightsLabel: string;
+}
+
+const { siteName, contactEmail, contactLabel, rightsLabel } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<footer>
+  <Separator />
+  <div class="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+    <p>
+      © {year} {siteName}. {rightsLabel}
+    </p>
+    {contactEmail && (
+      <a class="hover:text-foreground" href={`mailto:${contactEmail}`}>
+        {contactLabel}: {contactEmail}
+      </a>
+    )}
+  </div>
+</footer>
