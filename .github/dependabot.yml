@@ -1,0 +1,145 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "ci"
+    assignees:
+      - "CesarRodrigu"
+    groups:
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      github-actions-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/generator"
+      - "/front-end"
+    schedule:
+      interval: "monthly"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 2
+    versioning-strategy: "increase"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels:
+      - "dependencies"
+      - "javascript"
+    assignees:
+      - "CesarRodrigu"
+    exclude-paths:
+      - "**/node_modules/**"
+      - "**/dist/**"
+      - "**/.astro/**"
+      - "**/coverage/**"
+      - "**/playwright-report/**"
+      - "**/test-results/**"
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "maven"
+    directory: "/catalog"
+    schedule:
+      interval: "monthly"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    labels:
+      - "dependencies"
+      - "java"
+    assignees:
+      - "CesarRodrigu"
+    groups:
+      maven-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      maven-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/catalog"
+    schedule:
+      interval: "monthly"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "docker"
+    assignees:
+      - "CesarRodrigu"
+    groups:
+      docker-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      docker-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      time: "07:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "docker"
+    assignees:
+      - "CesarRodrigu"
+    groups:
+      docker-compose-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      docker-compose-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "patch"
+        patterns:
+          - "*"
