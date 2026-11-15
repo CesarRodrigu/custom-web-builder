@@ -172,7 +172,7 @@ jobs:
   sonar:
     name: SonarQube scan and quality gate
     runs-on: ubuntu-latest
-    needs: [test-generator, test-catalogue]
+    needs: [test-generator, test-frontend, test-catalogue]
 
     steps:
       - name: Checkout repository
