@@ -1,0 +1,28 @@
+spring:
+  jpa:
+    open-in-view: true
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: always
+
+logging:
+  level:
+    root: INFO
+    com.customwebbuilder.catalog: DEBUG
+    com.customwebbuilder.catalog.services.impl.ProductSearchServiceImpl: DEBUG
+
+catalog:
+  images:
+    allowed-domains: example.com,placehold.co
+springdoc:
+  show-actuator: true
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

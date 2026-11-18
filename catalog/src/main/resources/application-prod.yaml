@@ -1,0 +1,31 @@
+spring:
+  main:
+    lazy-initialization: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  sql:
+    init:
+      mode: never
+
+logging:
+  structured:
+    format:
+      console: ecs
+      file: ecs
+    ecs:
+      service:
+        environment: ${CATALOG_ENVIRONMENT:production}
+  file:
+    name: ${CATALOG_LOG_FILE:logs/catalog.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 20MB
+      max-history: 30
+      total-size-cap: 2GB
+  level:
+    com.customwebbuilder.catalog: INFO

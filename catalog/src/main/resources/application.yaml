@@ -1,3 +1,57 @@
 spring:
   application:
     name: catalog
+  profiles:
+    default: prod
+  data:
+    web:
+      pageable:
+        max-page-size: 100
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:app_db}
+    username: ${DB_USER:admin}
+    password: ${DB_PASSWORD:contra}
+    hikari:
+      allow-pool-suspension: true
+  jpa:
+    defer-datasource-initialization: true
+    open-in-view: false
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: logs
+      prefix: access_log
+      suffix: .log
+      pattern: "%h %l %u %t \"%r\" %s %b %D"
+      rotate: true
+      max-days: 30
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    apiversion:
+      use:
+        path-segment: 1
+      detect-supported: true
+      default: "1"
+
+logging:
+  charset:
+    console: UTF-8
+    file: UTF-8
+
+opensearch:
+  uris: ${OPENSEARCH_URIS:http://localhost:9200}
+
+catalog:
+  search:
+    reindex-on-startup: ${CATALOG_SEARCH_REINDEX_ON_STARTUP:true}
+  images:
+    allowed-domains: ${CATALOG_IMAGE_ALLOWED_DOMAINS:example.com,placehold.co}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
