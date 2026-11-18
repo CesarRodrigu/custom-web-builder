@@ -1,0 +1,32 @@
+include:
+  - docker-compose.yml
+
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: contra
+
+  opensearch:
+    environment:
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms256m -Xmx256m -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=64m
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: contra
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 768M
+
+  catalog:
+    environment:
+      OPENSEARCH_URIS: http://opensearch:9200
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: app_db
+      DB_USER: admin
+      DB_PASSWORD: contra
+      SPRING_PROFILES_ACTIVE: dev
