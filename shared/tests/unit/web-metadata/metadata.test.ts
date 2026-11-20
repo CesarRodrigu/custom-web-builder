@@ -1,4 +1,8 @@
-import { buildLocaleAlternates, buildTitle, toSlug } from "@/lib/metadata";
+import {
+  buildLocaleAlternates,
+  buildTitle,
+  toSlug,
+} from "@/web-metadata/metadata";
 import { describe, expect, it } from "vitest";
 
 describe("buildTitle", () => {
@@ -6,33 +10,33 @@ describe("buildTitle", () => {
     {
       name: "composes the title with the 'Page | Site' pattern",
       pageTitle: "Home",
-      expected: "Home | Generator",
+      expected: "Home | Site",
     },
     {
       name: "ignores an undefined page title",
       pageTitle: undefined,
-      expected: "Generator",
+      expected: "Site",
     },
     {
       name: "ignores an empty page title",
       pageTitle: "",
-      expected: "Generator",
+      expected: "Site",
     },
     {
       name: "ignores a whitespace-only page title",
       pageTitle: "   ",
-      expected: "Generator",
+      expected: "Site",
     },
   ])("$name", ({ pageTitle, expected }) => {
-    expect(buildTitle("Generator", pageTitle)).toBe(expected);
+    expect(buildTitle("Site", pageTitle)).toBe(expected);
   });
 
   it("returns only the site name when no page title argument is given", () => {
-    expect(buildTitle("Generator")).toBe("Generator");
+    expect(buildTitle("Site")).toBe("Site");
   });
 
   it("trims extra whitespace from both the site and the page title", () => {
-    expect(buildTitle("  Generator  ", "  About  ")).toBe("About | Generator");
+    expect(buildTitle("  Site  ", "  About  ")).toBe("About | Site");
   });
 });
 

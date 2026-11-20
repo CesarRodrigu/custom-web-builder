@@ -1,0 +1,9 @@
+{
+  "name": "Pan de masa madre",
+  "price": 6.5,
+  "categories": ["Panes"],
+  "shortDescription": "Fermentación lenta de 24 horas y corteza dorada.",
+  "longDescription": "Solo harina, agua, sal y masa madre. La fermentación de 24 horas desarrolla un aroma profundo y una miga húmeda que se conserva tierna varios días.",
+  "stock": 12,
+  "imageUrl": "/images/products/pan-de-masa-madre.svg"
+}

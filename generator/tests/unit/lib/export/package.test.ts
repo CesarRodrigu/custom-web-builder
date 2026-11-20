@@ -12,12 +12,12 @@ import {
 } from "@tests/unit/helpers/fixtures";
 
 describe("buildSiteFileMap", () => {
-  it("writes one site file and one file per product inside its category folder chain", () => {
+  it("writes one site file and one file per product under its visual folder", () => {
     const config = siteConfigWith({
       products: [
         normalizedProductWith({
           name: "Tarta de manzana",
-          categories: [["Dulces", "Tartas"]],
+          categories: ["Dulces", "Tartas"],
           price: 19.99,
         }),
         normalizedProductWith({ name: "Pan de centeno", price: 2.5 }),
@@ -28,50 +28,49 @@ describe("buildSiteFileMap", () => {
 
     expect(Object.keys(files)).toEqual([
       SITE_FILE,
-      "products/dulces/tartas/tarta-de-manzana.json",
-      "products/pan-de-centeno.json",
+      "products/t/tarta-de-manzana.json",
+      "products/p/pan-de-centeno.json",
     ]);
     expect(JSON.parse(files[SITE_FILE] ?? "")).toEqual({
       name: "Panadería María",
     });
-    expect(
-      JSON.parse(files["products/dulces/tartas/tarta-de-manzana.json"] ?? ""),
-    ).toEqual({ name: "Tarta de manzana", price: 19.99 });
-    expect(JSON.parse(files["products/pan-de-centeno.json"] ?? "")).toEqual({
+    expect(JSON.parse(files["products/t/tarta-de-manzana.json"] ?? "")).toEqual(
+      {
+        name: "Tarta de manzana",
+        price: 19.99,
+        categories: ["Dulces", "Tartas"],
+      },
+    );
+    expect(JSON.parse(files["products/p/pan-de-centeno.json"] ?? "")).toEqual({
       name: "Pan de centeno",
       price: 2.5,
+      categories: [],
     });
   });
 
-  it("duplicates the product file into every category chain it belongs to", () => {
+  it("writes a single file for a product with several categories", () => {
     const config = siteConfigWith({
       site: { name: "Bakery" },
       products: [
         normalizedProductWith({
           name: "Coffee cake",
-          categories: [["Sweets", "Cakes"], ["Drinks"]],
+          categories: ["Sweets", "Cakes", "Drinks"],
           price: 4,
         }),
       ],
     });
 
     const files = buildSiteFileMap(config);
-    const expectedContent = {
-      name: "Coffee cake",
-      price: 4,
-    };
 
     expect(Object.keys(files)).toEqual([
       SITE_FILE,
-      "products/sweets/cakes/coffee-cake.json",
-      "products/drinks/coffee-cake.json",
+      "products/c/coffee-cake.json",
     ]);
-    expect(
-      JSON.parse(files["products/sweets/cakes/coffee-cake.json"] ?? ""),
-    ).toEqual(expectedContent);
-    expect(JSON.parse(files["products/drinks/coffee-cake.json"] ?? "")).toEqual(
-      expectedContent,
-    );
+    expect(JSON.parse(files["products/c/coffee-cake.json"] ?? "")).toEqual({
+      name: "Coffee cake",
+      price: 4,
+      categories: ["Sweets", "Cakes", "Drinks"],
+    });
   });
 
   it("keeps the optional description and image URL of the product file", () => {
@@ -89,21 +88,21 @@ describe("buildSiteFileMap", () => {
 
     const files = buildSiteFileMap(config);
 
-    expect(JSON.parse(files["products/bread.json"] ?? "")).toEqual({
+    expect(JSON.parse(files["products/b/bread.json"] ?? "")).toEqual({
       name: "Bread",
       price: 0.5,
+      categories: [],
       description: "Whole grain",
       imageUrl: "https://example.com/bread.jpg",
     });
   });
 
-  it("falls back to stable names for slugs without alphanumeric characters", () => {
+  it("falls back to a stable name for a slug without alphanumeric characters", () => {
     const config = siteConfigWith({
       site: { name: "%%%" },
       products: [
         normalizedProductWith({
           name: "###",
-          categories: [["###", "###"]],
           price: 1,
         }),
       ],
@@ -113,7 +112,7 @@ describe("buildSiteFileMap", () => {
 
     expect(Object.keys(files)).toEqual([
       SITE_FILE,
-      "products/category-1/category-2/product-1.json",
+      "products/p/product-1.json",
     ]);
   });
 
@@ -123,7 +122,7 @@ describe("buildSiteFileMap", () => {
       products: [
         normalizedProductWith({
           name: "Bread",
-          categories: [["Bread"]],
+          categories: ["Bread"],
           price: 1,
         }),
       ],
@@ -131,32 +130,25 @@ describe("buildSiteFileMap", () => {
 
     const files = buildSiteFileMap(config, getExportFormat("yaml")!);
 
-    expect(Object.keys(files)).toEqual([
-      "site.yaml",
-      "products/bread/bread.yaml",
-    ]);
+    expect(Object.keys(files)).toEqual(["site.yaml", "products/b/bread.yaml"]);
     expect(files["site.yaml"]).toContain("name: Bakery");
-    expect(files["products/bread/bread.yaml"]).toContain("price: 1");
+    expect(files["products/b/bread.yaml"]).toContain("price: 1");
   });
 });
 
 describe("toProductPaths", () => {
   it.each([
     {
-      name: "places products without categories at the root of the products folder",
+      name: "groups a product by the first letter of its slug",
       product: normalizedProductWith({ name: "Bread", price: 1 }),
       fallbackNumber: 1,
-      expected: ["products/bread.json"],
+      expected: ["products/b/bread.json"],
     },
     {
-      name: "uses the given fallback number as file name when the slug is empty",
-      product: normalizedProductWith({
-        name: "***",
-        categories: [["Dulces"]],
-        price: 1,
-      }),
+      name: "uses the given fallback number when the slug is empty",
+      product: normalizedProductWith({ name: "***", price: 1 }),
       fallbackNumber: 3,
-      expected: ["products/dulces/product-3.json"],
+      expected: ["products/p/product-3.json"],
     },
   ])("$name", ({ product, fallbackNumber, expected }) => {
     expect(toProductPaths(product, fallbackNumber)).toEqual(expected);

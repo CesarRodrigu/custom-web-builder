@@ -1,0 +1,132 @@
+---
+import { BadgeLink } from "@/components/BadgeLink";
+import ProductStatusBadge from "@/components/ProductStatusBadge.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
+import { ProductGallery } from "@/components/ProductGallery";
+import type { ProductTexts } from "@/config/catalog";
+import { defaultLocale, type SiteLayoutTexts } from "@/config/site";
+import {
+  formatPrice,
+  getProductImages,
+  type CatalogProduct,
+} from "@/lib/catalog";
+import type { SiteMeta } from "@custom-web-builder/shared/catalog-schema";
+import type { CatalogCategory } from "@/lib/category";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+/**
+ * Localized strings for a product detail page.
+ *
+ * Exported so every locale page can type its `texts` object and get the same
+ * compile-time check; the object literal is the only thing that differs
+ * between locales.
+ */
+export interface ProductDetailTexts extends SiteLayoutTexts, ProductTexts {
+  /** Link back to the full products page. */
+  backToProducts: string;
+  /** Label of the button that opens the contact email. */
+  contactCta: string;
+  /** Label shown above the category badges. */
+  categoryLabel: string;
+}
+
+interface Props {
+  /** Localized strings of the page. */
+  texts: ProductDetailTexts;
+  /** Product exported by the generator. */
+  product: CatalogProduct;
+  /** Metadata exported by the generator. */
+  site: SiteMeta;
+  /** Categories that reference the product, in collection order. */
+  categories: CatalogCategory[];
+}
+
+const { texts, product, site, categories } = Astro.props;
+const locale = Astro.currentLocale ?? defaultLocale;
+const homeHref = getRelativeLocaleUrl(locale, "/");
+const productsHref = getRelativeLocaleUrl(locale, "/products");
+const images = getProductImages(product);
+const breadcrumbItems = [
+  { label: texts.navHome, href: homeHref },
+  { label: texts.navProducts, href: productsHref },
+  { label: product.name },
+];
+---
+
+<main>
+  <div class="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+    <BreadcrumbTrail items={breadcrumbItems} />
+
+    <div class="mt-8 grid gap-10 lg:grid-cols-2 lg:items-start">
+      <ProductGallery client:load name={product.name} images={images} />
+
+      <div class="flex flex-col items-start gap-5">
+        {categories.length > 0 && (
+          <div class="flex flex-col gap-2">
+            <span class="text-sm font-medium text-muted-foreground">
+              {texts.categoryLabel}
+            </span>
+            <div class="flex flex-wrap gap-1.5">
+              {categories.map((category) => (
+                <BadgeLink
+                  href={getRelativeLocaleUrl(
+                    locale,
+                    `/categories/${category.id}`,
+                  )}
+                  label={category.name}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <h1 class="font-heading text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
+          {product.name}
+        </h1>
+
+        <ProductStatusBadge status={product.status} texts={texts} />
+
+        {product.shortDescription && (
+          <p class="max-w-xl text-lg text-pretty text-muted-foreground">
+            {product.shortDescription}
+          </p>
+        )}
+
+        {product.longDescription && (
+          <p class="max-w-xl text-pretty whitespace-pre-line text-muted-foreground">
+            {product.longDescription}
+          </p>
+        )}
+
+        <p class="font-heading text-3xl font-semibold">
+          {formatPrice(product.price, locale)}
+        </p>
+
+        {product.stock !== undefined && (
+          <p class="text-sm text-muted-foreground">
+            {texts.stockLabel}:{" "}
+            <span class="font-medium text-foreground">{product.stock}</span>
+          </p>
+        )}
+
+        <div class="flex flex-wrap gap-3">
+          {site.contactEmail && (
+            <a
+              class={buttonVariants({ size: "lg" })}
+              href={`mailto:${site.contactEmail}`}
+            >
+              {texts.contactCta}
+            </a>
+          )}
+          <a
+            class={buttonVariants({ variant: "outline", size: "lg" })}
+            href={productsHref}
+          >
+            ← {texts.backToProducts}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

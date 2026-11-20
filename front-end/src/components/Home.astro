@@ -1,6 +1,115 @@
 ---
+import ProductCard from "@/components/ProductCard.astro";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { featuredProductCount, type ProductTexts } from "@/config/catalog";
+import { defaultLocale, type SiteLayoutTexts } from "@/config/site";
+import { sortProductsForDisplay, type CatalogProduct } from "@/lib/catalog";
+import type { SiteMeta } from "@custom-web-builder/shared/catalog-schema";
+import { getRelativeLocaleUrl } from "astro:i18n";
 
+/**
+ * Localized strings for the home page.
+ *
+ * Exported so every locale page can type its `texts` object and get the same
+ * compile-time check; the object literal is the only thing that differs
+ * between locales.
+ */
+export interface HomeTexts extends SiteLayoutTexts, ProductTexts {
+  /** Human-readable page title, used for `<title>` and the meta description. */
+  pageTitle: string;
+  /** Small badge shown above the site name in the hero. */
+  heroBadge: string;
+  /** Label of the button that opens the products page. */
+  catalogCta: string;
+  /** Label of the button that opens the contact email. */
+  contactCta: string;
+  /** Heading of the featured products section. */
+  featuredTitle: string;
+  /** Supporting text of the featured products section. */
+  featuredDescription: string;
+  /** Link to the full products page. */
+  viewAll: string;
+}
+
+interface Props {
+  /** Localized strings of the page. */
+  texts: HomeTexts;
+  /** Metadata exported by the generator. */
+  site: SiteMeta;
+  /** Products exported by the generator. */
+  products: CatalogProduct[];
+}
+
+const { texts, site, products } = Astro.props;
+const locale = Astro.currentLocale ?? defaultLocale;
+const productsHref = getRelativeLocaleUrl(locale, "/products");
+const featured = sortProductsForDisplay(products, locale).slice(
+  0,
+  featuredProductCount,
+);
 ---
 
 <main>
+  <section>
+    <div class="mx-auto grid w-full max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.2fr_0.8fr] lg:px-8">
+      <div class="flex flex-col items-start gap-5">
+        <Badge variant="secondary">{texts.heroBadge}</Badge>
+        <h1 class="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+          {site.name}
+        </h1>
+        {site.description && (
+          <p class="max-w-2xl text-lg text-pretty text-muted-foreground">
+            {site.description}
+          </p>
+        )}
+        <div class="flex flex-wrap gap-3">
+          <a class={buttonVariants({ size: "lg" })} href={productsHref}>
+            {texts.catalogCta}
+          </a>
+          {site.contactEmail && (
+            <a
+              class={buttonVariants({ variant: "outline", size: "lg" })}
+              href={`mailto:${site.contactEmail}`}
+            >
+              {texts.contactCta}
+            </a>
+          )}
+        </div>
+      </div>
+      <div class="relative hidden lg:block" aria-hidden="true">
+        <div class="absolute inset-0 rounded-3xl bg-linear-to-br from-primary/10 via-secondary to-muted ring-1 ring-foreground/10"></div>
+        <div class="relative flex h-full min-h-64 items-center justify-center p-10">
+          <span class="font-heading text-[10rem] leading-none font-semibold text-primary/20">
+            {site.name.charAt(0)}
+          </span>
+        </div>
+      </div>
+    </div>
+    <Separator />
+  </section>
+
+  {featured.length > 0 && (
+    <section class="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div class="flex flex-col gap-1">
+          <h2 class="font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+            {texts.featuredTitle}
+          </h2>
+          <p class="text-muted-foreground">{texts.featuredDescription}</p>
+        </div>
+        <a class={buttonVariants({ variant: "link" })} href={productsHref}>
+          {texts.viewAll} →
+        </a>
+      </div>
+      <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {featured.map((product) => (
+          <li>
+            <ProductCard product={product} locale={locale} texts={texts} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 </main>

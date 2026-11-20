@@ -36,8 +36,8 @@ describe("createWebStorageDraftPersistence", () => {
       products: [
         productWith({
           name: "Tarta de manzana",
-          categories: ["Dulces/Tartas"],
-          price: "19,99",
+          categories: ["Tartas"],
+          price: 19.99,
         }),
       ],
     });
@@ -50,11 +50,11 @@ describe("createWebStorageDraftPersistence", () => {
 
   it("fills in the ids missing in a draft stored before ids existed", async () => {
     const legacy = storedDraftWith([
-      storedProductWith({ name: "Tarta", price: "5" }),
+      storedProductWith({ name: "Tarta", price: 5 }),
       storedProductWith({
         name: "Pan",
         categories: ["Salados"],
-        price: "2",
+        price: 2,
       }),
     ]);
     const persistence = createWebStorageDraftPersistence(
@@ -72,8 +72,8 @@ describe("createWebStorageDraftPersistence", () => {
 
   it("keeps the stored ids and assigns the missing ones above the highest", async () => {
     const mixed = storedDraftWith([
-      productWith({ id: 5, name: "Tarta", price: "5" }),
-      storedProductWith({ name: "Pan", price: "2" }),
+      productWith({ id: 5, name: "Tarta", price: 5 }),
+      storedProductWith({ name: "Pan", price: 2 }),
     ]);
     const persistence = createWebStorageDraftPersistence(
       createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(mixed) }),

@@ -7,53 +7,25 @@
  * degrades into "there was nothing stored" without ever reaching the editing
  * flow.
  *
- * The trust boundary is a purely structural Zod schema: the draft being
- * edited may be half filled, so the schema only checks that every field is
- * the text-like shape the editor reads back, never that the draft satisfies
- * the semantic rules of the formal schema (that is `siteConfigDraftSchema`
- * in `lib/catalog/schema.ts`, applied while editing, not while storing).
- * The structural check accepts products without an id — the shape stored
- * before ids existed — and the load fills the missing ids in, so older
+ * The structural Zod schema of the stored document and the storage key are
+ * defined once in the shared catalog model. The draft being edited may be
+ * half filled, so that schema only checks that every field is the text-like
+ * shape the editor reads back. It accepts products without an id — the shape
+ * stored before ids existed — and the load fills the missing ids in, so older
  * drafts upgrade in place instead of being discarded.
  */
-import { z } from "astro/zod";
-
 import type { SiteConfigDraft } from "@/lib/catalog/schema";
 import type { DraftPersistence } from "@/lib/catalog/persistence/types";
+import {
+  DRAFT_STORAGE_KEY,
+  storedDraftSchema,
+  type StoredDraft,
+} from "@custom-web-builder/shared/catalog-schema";
 
-/** localStorage key under which the editor draft is persisted. */
-export const DRAFT_STORAGE_KEY = "custom-web-builder:draft";
+export { DRAFT_STORAGE_KEY } from "@custom-web-builder/shared/catalog-schema";
 
 /** The Storage subset the adapter uses; `null` when there is no backing document. */
 type WebStorage = Pick<Storage, "getItem" | "setItem"> | null;
-
-/**
- * Zod schema of the stored draft content: the structural shape of
- * `SiteConfigDraft`. Product ids are optional here because drafts stored
- * before ids existed are still valid input; {@link withStoredProductIds}
- * turns the parsed document into a full `SiteConfigDraft`, so a schema drift
- * away from the formal draft still stops compiling at that mapper.
- */
-const storedDraftSchema = z.object({
-  site: z.object({
-    name: z.string(),
-    description: z.string(),
-    contactEmail: z.string(),
-  }),
-  products: z.array(
-    z.object({
-      id: z.number().int().positive().optional(),
-      name: z.string(),
-      categories: z.array(z.string()),
-      description: z.string(),
-      price: z.string(),
-      imageUrl: z.string(),
-    }),
-  ),
-});
-
-/** Document the structural schema reads back, with optional product ids. */
-type StoredDraft = z.infer<typeof storedDraftSchema>;
 
 /**
  * Completes a stored draft so every product carries an id: ids already

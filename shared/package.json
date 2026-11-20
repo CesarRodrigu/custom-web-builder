@@ -1,0 +1,43 @@
+{
+  "name": "@custom-web-builder/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./catalog-schema": "./src/catalog-schema/index.ts",
+    "./web-metadata": "./src/web-metadata/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:unit:coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "run-p lint format:check",
+    "check:all": "run-p test check"
+  },
+  "peerDependencies": {
+    "astro": "^7.4.11"
+  },
+  "peerDependenciesMeta": {
+    "astro": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.1",
+    "astro": "^7.4.11",
+    "eslint": "^10.13.0",
+    "eslint-plugin-jsdoc": "^65.4.5",
+    "globals": "^17.14.0",
+    "npm-run-all2": "^9.0.4",
+    "prettier": "3.9.10",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.1"
+  }
+}

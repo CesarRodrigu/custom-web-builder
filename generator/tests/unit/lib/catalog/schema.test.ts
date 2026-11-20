@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BLANK_PRICE,
   nextProductId,
+  optionalField,
+  OptionalTextField,
   parseSiteConfig,
   ValidationCode,
   type FieldIssue,
@@ -33,6 +36,33 @@ function expectInvalidIssues(result: SiteConfigValidation): FieldIssue[] {
   return (result as Extract<SiteConfigValidation, { valid: false }>).issues;
 }
 
+describe("optionalField", () => {
+  it.each(Object.values(OptionalTextField))(
+    "returns the trimmed value under %s",
+    (key) => {
+      expect(optionalField(key, "  Fresh bread  ")).toEqual({
+        [key]: "Fresh bread",
+      });
+    },
+  );
+
+  it.each(["", "   ", undefined])(
+    "omits an absent or blank value %j",
+    (value) => {
+      const result = optionalField(OptionalTextField.Description, value);
+
+      expect(result).toEqual({});
+      expect(result).not.toHaveProperty(OptionalTextField.Description);
+    },
+  );
+
+  it("adds only the requested field to the record", () => {
+    const result = optionalField(OptionalTextField.ContactEmail, "a@b.com");
+
+    expect(Object.keys(result)).toEqual([OptionalTextField.ContactEmail]);
+  });
+});
+
 describe("parseSiteConfig", () => {
   it("accepts a minimal draft and normalizes it into a valid configuration", () => {
     const result = parseSiteConfig(
@@ -45,8 +75,8 @@ describe("parseSiteConfig", () => {
         products: [
           productWith({
             name: "  Tarta de manzana  ",
-            categories: ["  Dulces/Tartas  "],
-            price: "19,99",
+            categories: ["  Tartas  "],
+            price: 19.99,
             imageUrl: "   ",
           }),
         ],
@@ -58,7 +88,7 @@ describe("parseSiteConfig", () => {
       products: [
         {
           name: "Tarta de manzana",
-          categories: [["Dulces", "Tartas"]],
+          categories: ["Tartas"],
           price: 19.99,
         },
       ],
@@ -76,7 +106,7 @@ describe("parseSiteConfig", () => {
         products: [
           productWith({
             name: "Bread",
-            price: "0.5",
+            price: 0.5,
             description: "Whole grain",
             imageUrl: "https://example.com/bread.jpg",
           }),
@@ -121,14 +151,14 @@ describe("parseSiteConfig", () => {
     {
       name: "a product without a valid price",
       draft: {
-        products: [productWith({ name: "Bread", price: "abc" })],
+        products: [productWith({ name: "Bread", price: BLANK_PRICE })],
       },
       issues: [{ field: "products.0.price", code: ValidationCode.Price }],
     },
     {
       name: "a price with more than two decimals",
       draft: {
-        products: [productWith({ name: "Bread", price: "10.999" })],
+        products: [productWith({ name: "Bread", price: 10.999 })],
       },
       issues: [{ field: "products.0.price", code: ValidationCode.Price }],
     },
@@ -138,7 +168,7 @@ describe("parseSiteConfig", () => {
         products: [
           productWith({
             name: "Bread",
-            price: "1.50",
+            price: 1.5,
             imageUrl: "ftp://example.com/bread.jpg",
           }),
         ],
@@ -146,13 +176,13 @@ describe("parseSiteConfig", () => {
       issues: [{ field: "products.0.imageUrl", code: ValidationCode.Url }],
     },
     {
-      name: "a category path with empty segments",
+      name: "a category name that contains a path separator",
       draft: {
         products: [
           productWith({
             name: "Bread",
-            price: "2",
-            categories: ["Dulces", "/Tartas/"],
+            price: 2,
+            categories: ["Dulces", "Tartas/Postres"],
           }),
         ],
       },
@@ -170,9 +200,9 @@ describe("parseSiteConfig", () => {
     const result = parseSiteConfig(
       draftWith({
         products: [
-          productWith({ id: 1, name: "  Pan  ", price: "2" }),
-          productWith({ id: 2, name: "pan", price: "3" }),
-          productWith({ id: 3, name: "Tarta", price: "1" }),
+          productWith({ id: 1, name: "  Pan  ", price: 2 }),
+          productWith({ id: 2, name: "pan", price: 3 }),
+          productWith({ id: 3, name: "Tarta", price: 1 }),
         ],
       }),
     );
@@ -207,22 +237,22 @@ describe("parseSiteConfig", () => {
     });
   });
 
-  it("normalizes every category path and keeps the product in several categories", () => {
+  it("normalizes every category name and keeps the product in several categories", () => {
     const result = parseSiteConfig(
       draftWith({
         products: [
           productWith({
             name: "Bread",
-            categories: [" Dulces caseros / Panes especiales ", "Postres"],
-            price: "2",
+            categories: [" Dulces caseros ", "Postres"],
+            price: 2,
           }),
         ],
       }),
     );
 
     expect(expectValidConfig(result).products[0]?.categories).toEqual([
-      ["Dulces caseros", "Panes especiales"],
-      ["Postres"],
+      "Dulces caseros",
+      "Postres",
     ]);
   });
 
@@ -234,7 +264,7 @@ describe("parseSiteConfig", () => {
           productWith({
             id: 2,
             categories: ["Dulces//Tartas"],
-            price: "2",
+            price: 2,
           }),
         ],
       }),
@@ -251,7 +281,7 @@ describe("parseSiteConfig", () => {
   it("keeps the product id out of the exported configuration", () => {
     const result = parseSiteConfig(
       draftWith({
-        products: [productWith({ id: 7, name: "Bread", price: "2" })],
+        products: [productWith({ id: 7, name: "Bread", price: 2 })],
       }),
     );
 

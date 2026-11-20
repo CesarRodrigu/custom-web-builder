@@ -1,0 +1,41 @@
+---
+import ProductDetail, {
+  type ProductDetailTexts,
+} from "@/components/ProductDetail.astro";
+import { site } from "@/config/site-content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { getProductStaticPaths } from "@/lib/content";
+
+const texts: ProductDetailTexts = {
+  navHome: "Home",
+  navProducts: "Products",
+  navCategories: "Categories",
+  backToProducts: "Back to products",
+  contactCta: "Ask about availability",
+  categoryLabel: "Category",
+  statusRecommended: "Recommended",
+  statusNotForSale: "Not for sale",
+  stockLabel: "In stock",
+  footerContact: "Contact",
+  footerRights: "All rights reserved.",
+};
+
+export const getStaticPaths = getProductStaticPaths;
+
+const { product, categories } = Astro.props;
+---
+
+<BaseLayout
+  title={product.name}
+  description={product.longDescription ?? product.shortDescription}
+  siteName={site.name}
+  contactEmail={site.contactEmail}
+  layout={texts}
+>
+  <ProductDetail
+    texts={texts}
+    product={product}
+    site={site}
+    categories={categories}
+  />
+</BaseLayout>

@@ -29,10 +29,12 @@ import ProductSection from "@/features/builder/sections/ProductSection";
 import ExportView from "@/features/builder/sections/ExportView";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import {
+  BLANK_PRICE,
   nextProductId,
   parseSiteConfig,
   ProductTextField,
   SiteTextField,
+  toPriceValue,
   ValidationCode,
   type ProductDraft,
   type SiteConfigDraft,
@@ -79,7 +81,7 @@ function createEmptyProduct(id: number): ProductDraft {
     name: "",
     categories: [],
     description: "",
-    price: "",
+    price: BLANK_PRICE,
     imageUrl: "",
   };
 }
@@ -184,16 +186,16 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
   const fileTree = useMemo(() => buildFileTree(draft), [draft]);
 
   /**
-   * Category paths typed anywhere in the catalog, unique regardless of case
-   * and in first use order, so the category combobox can suggest them back.
-   * @returns The suggestion list of category paths.
+   * Flat category names typed anywhere in the catalog, unique regardless of
+   * case and in first use order, so the category combobox can suggest them back.
+   * @returns The suggestion list of category names.
    */
   const categorySuggestions = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const path of draft.products.flatMap(
+    for (const name of draft.products.flatMap(
       (product) => product.categories,
     )) {
-      const trimmed = path.trim();
+      const trimmed = name.trim();
       if (trimmed !== "") {
         seen.set(trimmed.toLowerCase(), trimmed);
       }
@@ -241,9 +243,12 @@ export default function ConfigEditor(props: Readonly<ConfigEditorProps>) {
   ): void {
     setDraft((current) => ({
       ...current,
-      products: current.products.map((product, productIndex) =>
-        productIndex === index ? { ...product, [field]: value } : product,
-      ),
+      products: current.products.map((product, productIndex) => {
+        if (productIndex !== index) return product;
+        return field === ProductTextField.Price
+          ? { ...product, price: toPriceValue(value) }
+          : { ...product, [field]: value };
+      }),
     }));
   }
 

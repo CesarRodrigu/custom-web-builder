@@ -73,7 +73,7 @@ test.describe("configuration editor in Spanish", () => {
     );
     const siteDocument = await packageZip.file("site.json")?.async("string");
     const productDocument = await packageZip
-      .file("products/tarta-de-manzana.json")
+      .file("products/t/tarta-de-manzana.json")
       ?.async("string");
     expect(JSON.parse(siteDocument ?? "")).toEqual({
       name: "Panadería María",
@@ -82,10 +82,11 @@ test.describe("configuration editor in Spanish", () => {
     expect(JSON.parse(productDocument ?? "")).toEqual({
       name: "Tarta de manzana",
       price: 19.99,
+      categories: [],
     });
   });
 
-  test("exports the package with the site file and the per product folders", async ({
+  test("exports the package with the site file and one file per product", async ({
     page,
   }) => {
     await page.goto("/es/");
@@ -98,16 +99,17 @@ test.describe("configuration editor in Spanish", () => {
 
     const categoryInput = page.getByLabel("Categoría");
     await categoryInput.click();
-    await categoryInput.fill("Dulces/Tartas");
+    await categoryInput.fill("Tartas");
     await categoryInput.press("Enter");
     await expect(
       page.locator('[data-slot="combobox-chip"]').filter({
-        hasText: "Dulces/Tartas",
+        hasText: "Tartas",
       }),
     ).toBeVisible();
 
-    await expect(page.getByRole("button", { name: "dulces" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "tartas" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "t", exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "tarta-de-manzana" }),
     ).toBeVisible();
@@ -132,12 +134,13 @@ test.describe("configuration editor in Spanish", () => {
     );
     const siteDocument = await packageZip.file("site.yaml")?.async("string");
     const productDocument = await packageZip
-      .file("products/dulces/tartas/tarta-de-manzana.yaml")
+      .file("products/t/tarta-de-manzana.yaml")
       ?.async("string");
     // The site name has non ASCII characters, so the serializer quotes it.
     expect(siteDocument).toContain('name: "Panadería María"');
     expect(productDocument).toContain("name: Tarta de manzana");
     expect(productDocument).toContain("price: 19.99");
+    expect(productDocument).toContain("categories:");
   });
 
   test("keeps the draft across a page reload", async ({ page }) => {
@@ -346,7 +349,7 @@ test.describe("configuration editor in English", () => {
     );
     const siteDocument = await packageZip.file("site.json")?.async("string");
     const productDocument = await packageZip
-      .file("products/apple-pie.json")
+      .file("products/a/apple-pie.json")
       ?.async("string");
     expect(JSON.parse(siteDocument ?? "")).toEqual({
       name: "Maria's Bakery",
@@ -354,6 +357,7 @@ test.describe("configuration editor in English", () => {
     expect(JSON.parse(productDocument ?? "")).toEqual({
       name: "Apple pie",
       price: 12.5,
+      categories: [],
     });
   });
 });

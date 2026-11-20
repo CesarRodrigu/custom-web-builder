@@ -2,34 +2,32 @@
  * Shared fixtures for the unit tests: builders of draft and normalized
  * configurations, so every test states only the fields it checks.
  */
-import type {
-  Product,
-  ProductDraft,
-  SiteConfig,
-  SiteConfigDraft,
-  SiteMeta,
-  SiteMetaDraft,
+import {
+  BLANK_PRICE,
+  type Product,
+  type ProductDraft,
+  type SiteConfig,
+  type SiteConfigDraft,
+  type SiteMetaDraft,
 } from "@/lib/catalog/schema";
+import type {
+  SiteMeta,
+  StoredDraft,
+} from "@custom-web-builder/shared/catalog-schema";
+
+export type { StoredDraft } from "@custom-web-builder/shared/catalog-schema";
+
+/** Product shape persisted before editor-only ids existed. */
+export type StoredProduct = StoredDraft["products"][number];
 
 /** Product fields shared by the fixtures, without the editor-only id. */
 const EMPTY_PRODUCT: Omit<ProductDraft, "id"> = {
   name: "",
   categories: [],
   description: "",
-  price: "",
+  price: BLANK_PRICE,
   imageUrl: "",
 };
-
-/** Product shape persisted before editor-only ids existed. */
-export type StoredProduct = Omit<ProductDraft, "id">;
-
-/** Draft shape persisted before editor-only product ids existed. */
-export interface StoredDraft {
-  /** Stored site metadata. */
-  site: SiteMetaDraft;
-  /** Stored products, possibly without an id. */
-  products: StoredProduct[];
-}
 
 /**
  * Builds a product draft out of partial overrides, so tests only specify the

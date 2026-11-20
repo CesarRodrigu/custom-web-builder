@@ -9,7 +9,11 @@ import BigTextField from "@/features/builder/fields/BigTextField";
 import TextField from "@/features/builder/fields/TextField";
 import RemoveProductButton from "@/features/builder/components/RemoveProductButton";
 import { Button } from "@/components/ui/button";
-import { ProductTextField, type ProductDraft } from "@/lib/catalog/schema";
+import {
+  ProductTextField,
+  toPriceInput,
+  type ProductDraft,
+} from "@/lib/catalog/schema";
 
 /** Props of one product page. */
 interface ProductSectionProps {
@@ -74,7 +78,7 @@ export function ProductSection(props: Readonly<ProductSectionProps>) {
           placeholder={texts.productPricePlaceholder}
           description={texts.productPriceHint}
           required
-          value={product.price}
+          value={toPriceInput(product.price)}
           errorText={getError(`products.${index}.${ProductTextField.Price}`)}
           onChange={(value) => onChange(ProductTextField.Price, value)}
         />

@@ -15,11 +15,7 @@ import {
   SITE_FILE,
   toProductPaths,
 } from "@/lib/export/package";
-import {
-  toCategorySegments,
-  type Product,
-  type SiteConfigDraft,
-} from "@/lib/catalog/schema";
+import type { Product, SiteConfigDraft } from "@/lib/catalog/schema";
 
 /** Kinds of node of the package tree. */
 export const FileTreeNodeType = {
@@ -51,7 +47,7 @@ export interface FileNode {
   type: typeof FileTreeNodeType.File;
   /** Display name of the file, e.g. `tarta-de-manzana.json`. */
   name: string;
-  /** Package path of the file, e.g. `products/dulces/tartas/tarta.json`. */
+  /** Package path of the file, e.g. `products/t/tarta.json`. */
   path: string;
   /** Catalog position of the product behind the file, or undefined when the file is not a product file (the site file). */
   productIndex?: number;
@@ -122,8 +118,9 @@ function toFileNodeName(fileName: string): string {
 
 /**
  * Builds the file tree of the current draft package: the site file first and
- * the products folder second, with one file per product file path (so a
- * product in several categories appears in each of its category chains).
+ * the products folder second, with one file per product under its visual
+ * folder. The subfolders group files for browsing and never represent a
+ * category.
  * @param draft Current configuration draft, valid or not.
  * @returns The tree nodes, in build order, ready to be rendered recursively.
  */
@@ -137,7 +134,7 @@ export function buildFileTree(draft: SiteConfigDraft): FileTreeNode[] {
   draft.products.forEach((product, index) => {
     const productFile: Product = {
       name: product.name,
-      categories: product.categories.map(toCategorySegments),
+      categories: product.categories.map((category) => category.trim()),
       price: 0,
     };
     for (const path of toProductPaths(productFile, product.id)) {

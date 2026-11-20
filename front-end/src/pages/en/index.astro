@@ -1,10 +1,36 @@
 ---
-import Home from "@/components/Home.astro";
+import Home, { type HomeTexts } from "@/components/Home.astro";
+import { site } from "@/config/site-content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { loadCatalog } from "@/lib/content";
 
+const texts: HomeTexts = {
+  pageTitle: "Home page",
+  navHome: "Home",
+  navProducts: "Products",
+  navCategories: "Categories",
+  heroBadge: "Handcrafted catalog",
+  catalogCta: "Browse products",
+  contactCta: "Contact",
+  featuredTitle: "Featured products",
+  featuredDescription: "A selection of our latest products.",
+  viewAll: "View the full catalog",
+  statusRecommended: "Recommended",
+  statusNotForSale: "Not for sale",
+  stockLabel: "In stock",
+  footerContact: "Contact",
+  footerRights: "All rights reserved.",
+};
+
+const { products } = await loadCatalog();
 ---
 
 <BaseLayout
+  title={texts.pageTitle}
+  description={site.description}
+  siteName={site.name}
+  contactEmail={site.contactEmail}
+  layout={texts}
 >
-  <Home />
+  <Home texts={texts} site={site} products={products} />
 </BaseLayout>

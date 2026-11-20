@@ -1,0 +1,5 @@
+{
+  "name": "Postres",
+  "description": "Recetas tradicionales para terminar la comida.",
+  "products": ["postres/flan-de-huevo"]
+}

@@ -1,0 +1,4 @@
+packages:
+  - generator
+  - front-end
+  - shared

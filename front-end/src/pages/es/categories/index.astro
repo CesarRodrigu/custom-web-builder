@@ -1,0 +1,35 @@
+---
+import Categories, {
+  type CategoriesTexts,
+} from "@/components/Categories.astro";
+import { site } from "@/config/site-content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { loadCatalog } from "@/lib/content";
+
+const texts: CategoriesTexts = {
+  pageTitle: "Categorías",
+  navHome: "Inicio",
+  navProducts: "Productos",
+  navCategories: "Categorías",
+  eyebrow: "Explora el catálogo",
+  heading: "Categorías",
+  intro: "Agrupamos los productos por tipo para que encuentres lo que buscas.",
+  empty: "Todavía no hay categorías en el catálogo.",
+  productCountOne: "producto",
+  productCountOther: "productos",
+  footerContact: "Contacto",
+  footerRights: "Todos los derechos reservados.",
+};
+
+const { categories } = await loadCatalog();
+---
+
+<BaseLayout
+  title={texts.pageTitle}
+  description={texts.intro}
+  siteName={site.name}
+  contactEmail={site.contactEmail}
+  layout={texts}
+>
+  <Categories texts={texts} categories={categories} />
+</BaseLayout>

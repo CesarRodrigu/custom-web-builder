@@ -4,7 +4,7 @@ import { buildFileTree } from "@/lib/catalog/tree";
 import { draftWith, productWith } from "@tests/unit/helpers/fixtures";
 
 describe("buildFileTree", () => {
-  it("shows the site file and flat product files when no category is set", () => {
+  it("shows the site file and one product file under its visual folder", () => {
     const tree = buildFileTree(draftWith({ products: [productWith()] }));
 
     expect(tree).toEqual([
@@ -15,11 +15,18 @@ describe("buildFileTree", () => {
         path: "products",
         children: [
           {
-            type: "file",
-            name: "product-1",
-            path: "products/product-1.json",
-            productIndex: 0,
-            productId: 1,
+            type: "folder",
+            name: "p",
+            path: "products/p",
+            children: [
+              {
+                type: "file",
+                name: "product-1",
+                path: "products/p/product-1.json",
+                productIndex: 0,
+                productId: 1,
+              },
+            ],
           },
         ],
       },
@@ -38,22 +45,29 @@ describe("buildFileTree", () => {
       productsFolder?.type === "folder" ? productsFolder.children : [],
     ).toEqual([
       {
-        type: "file",
-        name: "product-3",
-        path: "products/product-3.json",
-        productIndex: 0,
-        productId: 3,
+        type: "folder",
+        name: "p",
+        path: "products/p",
+        children: [
+          {
+            type: "file",
+            name: "product-3",
+            path: "products/p/product-3.json",
+            productIndex: 0,
+            productId: 3,
+          },
+        ],
       },
     ]);
   });
 
-  it("nests the category chain of every product inside the products folder", () => {
+  it("does not use categories as folders", () => {
     const tree = buildFileTree(
       draftWith({
         products: [
           productWith({
             name: "Tarta de manzana",
-            categories: ["Dulces/Tartas"],
+            categories: ["Dulces", "Tartas"],
           }),
         ],
       }),
@@ -68,22 +82,15 @@ describe("buildFileTree", () => {
         children: [
           {
             type: "folder",
-            name: "dulces",
-            path: "products/dulces",
+            name: "t",
+            path: "products/t",
             children: [
               {
-                type: "folder",
-                name: "tartas",
-                path: "products/dulces/tartas",
-                children: [
-                  {
-                    type: "file",
-                    name: "tarta-de-manzana",
-                    path: "products/dulces/tartas/tarta-de-manzana.json",
-                    productIndex: 0,
-                    productId: 1,
-                  },
-                ],
+                type: "file",
+                name: "tarta-de-manzana",
+                path: "products/t/tarta-de-manzana.json",
+                productIndex: 0,
+                productId: 1,
               },
             ],
           },
@@ -92,73 +99,36 @@ describe("buildFileTree", () => {
     ]);
   });
 
-  it("shows a product once per category and keeps folders shared", () => {
+  it("shows a product with several categories once", () => {
     const tree = buildFileTree(
       draftWith({
         products: [
           productWith({
             name: "Coffee cake",
-            categories: ["Sweets/Cakes", "Sweets"],
+            categories: ["Sweets", "Cakes"],
           }),
         ],
       }),
     );
 
     const productsFolder = tree[1];
-    expect(productsFolder).toEqual({
-      type: "folder",
-      name: "products",
-      path: "products",
-      children: expect.arrayContaining([
-        {
-          type: "folder",
-          name: "sweets",
-          path: "products/sweets",
-          children: expect.arrayContaining([
-            {
-              type: "file",
-              name: "coffee-cake",
-              path: "products/sweets/coffee-cake.json",
-              productIndex: 0,
-              productId: 1,
-            },
-          ]),
-        },
-      ]),
-    });
-    const sweets =
-      productsFolder?.type === "folder"
-        ? productsFolder.children[0]
-        : undefined;
     expect(
-      sweets?.type === "folder"
-        ? sweets.children.map((child) => JSON.stringify(child))
-        : [],
+      productsFolder?.type === "folder" ? productsFolder.children : [],
     ).toEqual([
-      JSON.stringify({
+      {
         type: "folder",
-        name: "cakes",
-        path: "products/sweets/cakes",
+        name: "c",
+        path: "products/c",
         children: [
           {
             type: "file",
             name: "coffee-cake",
-            path: "products/sweets/cakes/coffee-cake.json",
+            path: "products/c/coffee-cake.json",
             productIndex: 0,
             productId: 1,
           },
         ],
-      }),
-      JSON.stringify({
-        type: "file",
-        name: "coffee-cake",
-        path: "products/sweets/coffee-cake.json",
-        productIndex: 0,
-        productId: 1,
-      }),
+      },
     ]);
-    expect(
-      productsFolder?.type === "folder" ? productsFolder.children : [],
-    ).toHaveLength(1);
   });
 });

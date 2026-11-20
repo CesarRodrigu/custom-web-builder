@@ -1,0 +1,15 @@
+{
+  "name": "Baguette",
+  "price": 2.4,
+  "categories": ["Panes"],
+  "shortDescription": "Miga ligera y corteza fina, recién horneada.",
+  "longDescription": "Elaborada con masa de fermentación lenta y horneada en el día, la baguette tiene una corteza crujiente y una miga aireada que aguanta perfectamente hasta la tarde.",
+  "stock": 24,
+  "imageUrl": "/images/products/baguette.svg",
+  "images": [
+    "/images/products/baguette.svg",
+    "/images/products/baguette-detail.svg",
+    "/images/products/baguette-slice.svg"
+  ],
+  "status": "recommended"
+}

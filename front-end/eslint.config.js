@@ -31,6 +31,13 @@ export default defineConfig(
       "src/components/ui/**",
     ],
   },
+  {
+    languageOptions: {
+      parserOptions: {
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...astro.configs["flat/recommended"],
@@ -67,7 +74,7 @@ export default defineConfig(
             {
               group: ["..", "../*", ".", "./*"],
               message:
-                "Relative imports are not allowed. Use the `@/` alias (e.g. `@/lib/metadata`).",
+                "Relative imports are not allowed. Use the `@/` alias (e.g. `@/lib/catalog`).",
             },
           ],
         },

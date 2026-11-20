@@ -1,0 +1,71 @@
+---
+import { ModeToggle } from "@/components/ModeToggle";
+import { defaultLocale } from "@/config/site";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+interface Props {
+  /** Display name of the site, shown as the brand link. */
+  siteName: string;
+  /** Label of the home link. */
+  homeLabel: string;
+  /** Label of the products link. */
+  productsLabel: string;
+  /** Label of the categories link. */
+  categoriesLabel: string;
+}
+
+const { siteName, homeLabel, productsLabel, categoriesLabel } = Astro.props;
+const locale = Astro.currentLocale ?? defaultLocale;
+const homeHref = getRelativeLocaleUrl(locale, "/");
+const productsHref = getRelativeLocaleUrl(locale, "/products");
+const categoriesHref = getRelativeLocaleUrl(locale, "/categories");
+const pathname = Astro.url.pathname.replace(/\/+$/, "");
+const productsPath = productsHref.replace(/\/+$/, "");
+const categoriesPath = categoriesHref.replace(/\/+$/, "");
+const isCategories =
+  pathname === categoriesPath || pathname.startsWith(`${categoriesPath}/`);
+const isProducts =
+  !isCategories &&
+  (pathname === productsPath || pathname.startsWith(`${productsPath}/`));
+const isHome = !isProducts && !isCategories;
+
+const linkClass = (active: boolean) =>
+  active
+    ? "rounded-md bg-muted px-3 py-1.5 font-medium text-foreground"
+    : "rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+---
+
+<header class="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
+  <div class="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <a
+      href={homeHref}
+      class="font-heading text-lg font-semibold tracking-tight"
+    >
+      {siteName}
+    </a>
+    <nav class="flex items-center gap-1 text-sm">
+      <a
+        href={homeHref}
+        aria-current={isHome ? "page" : undefined}
+        class={linkClass(isHome)}
+      >
+        {homeLabel}
+      </a>
+      <a
+        href={productsHref}
+        aria-current={isProducts ? "page" : undefined}
+        class={linkClass(isProducts)}
+      >
+        {productsLabel}
+      </a>
+      <a
+        href={categoriesHref}
+        aria-current={isCategories ? "page" : undefined}
+        class={linkClass(isCategories)}
+      >
+        {categoriesLabel}
+      </a>
+    </nav>
+    <ModeToggle client:load />
+  </div>
+</header>
