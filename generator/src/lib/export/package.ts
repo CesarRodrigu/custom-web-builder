@@ -2,42 +2,75 @@
  * Configuration package: the export that mirrors on disk how a shop is
  * organized.
  *
- * The package is a file tree with one side configuration file and a `products`
- * folder holding one document per product, grouped into subfolders by the
- * first letter of the product name for browsing only. Those subfolders never
- * carry category information: categories travel inside every product document
- * as a flat array, so one product produces one file regardless of how many
- * categories it has. This module builds the tree as a path/content map,
- * independent of how it is later delivered to the user.
+ * The package is a file tree with one site configuration file, an optional
+ * `folders` file and a `products` folder holding one document per product.
+ * Products are placed in the folder the user chose in the editor tree, which
+ * may be a nested path such as `dulces/tartas`; products without a folder sit
+ * directly in `products/`. Categories never become product folders: they travel
+ * inside every product document as a flat array and are also collected into one
+ * document per distinct category under `categories/`. Each of those documents
+ * carries a generated unique id, so the front-end can use it as the entry id of
+ * its categories collection instead of deriving one from the file name. This
+ * module builds the tree as a path/content map, independent of how it is later
+ * delivered to the user.
  */
 import { toSlug } from "@custom-web-builder/shared/web-metadata";
 import {
   defaultExportFormat,
   type ExportFormat,
 } from "@/lib/export/formats/format";
-import type { Product, SiteConfig } from "@/lib/catalog/schema";
+import {
+  optionalField,
+  type Category,
+  type CategoryDocument,
+  type Product,
+  type SiteConfig,
+} from "@/lib/catalog/schema";
 
 /** Folder that holds every product document of the catalog. */
 export const PRODUCTS_FOLDER = "products";
 
+/** Folder that holds one document per generated category of the catalog. */
+export const CATEGORIES_FOLDER = "categories";
+
+/**
+ * Converts a package path of the tree into a product folder path relative to
+ * the products folder, so dragging a product never repeats the root segment.
+ * @param path Package path of a tree folder, e.g. `products/dulces/tartas`.
+ * @returns The relative folder path, or an empty string for the products root.
+ */
+export function toRelativeFolderPath(path: string): string {
+  if (path === PRODUCTS_FOLDER) return "";
+  return path.startsWith(`${PRODUCTS_FOLDER}/`)
+    ? path.slice(PRODUCTS_FOLDER.length + 1)
+    : path;
+}
+
 /** Name of the single configuration file of the site. */
 export const SITE_FILE = "site.json";
 
+/** Base name of the optional file that preserves the user created folders. */
+export const FOLDERS_FILE = "folders";
+
 /**
  * Splits a product into the fields its own file contains, keeping the flat
- * category names and dropping the optional fields that are blank.
+ * category names and dropping the optional fields that are blank. The SKU, the
+ * main image and the gallery are always written.
  * @param product Normalized product.
  * @returns The JSON-ready content of the product file.
  */
 function toProductDocument(product: Product): Product {
   return {
+    sku: product.sku,
     name: product.name,
     price: product.price,
     categories: product.categories,
-    ...(product.description === undefined
-      ? {}
-      : { description: product.description }),
-    ...(product.imageUrl === undefined ? {} : { imageUrl: product.imageUrl }),
+    shortDescription: product.shortDescription,
+    ...optionalField("longDescription", product.longDescription),
+    ...(product.stock === undefined ? {} : { stock: product.stock }),
+    ...(product.status === undefined ? {} : { status: product.status }),
+    mainImage: product.mainImage,
+    images: product.images,
   };
 }
 
@@ -53,7 +86,7 @@ function toProductDocument(product: Product): Product {
  * @returns File name like `tarta-de-manzana.json`.
  */
 function toProductFileName(
-  product: Product,
+  product: Pick<Product, "name" | "folder">,
   fallbackNumber: number,
   format: ExportFormat,
 ): string {
@@ -62,35 +95,22 @@ function toProductFileName(
 }
 
 /**
- * Builds the visual folder of one product: the first alphanumeric character
- * of its slug, or `other` when the name has none. It groups files for browsing
- * only; it never carries category information, which lives in the document.
- * @param product Normalized product.
- * @param fallbackNumber Number used in the fallback file name.
- * @returns Folder name below the products folder.
- */
-function toProductFolder(product: Product, fallbackNumber: number): string {
-  const base = toSlug(product.name) || `product-${fallbackNumber}`;
-  const initial = base.charAt(0);
-  return /^[a-z0-9]$/.test(initial) ? initial : "other";
-}
-
-/**
- * Builds the only file path of one product: one document under a visual
- * folder, whatever the number of categories the product declares.
+ * Builds the only file path of one product: one document in the folder the
+ * user assigned to it, or directly in `products/` when it has none. The
+ * categories it declares never change the path.
  * @param product Normalized product.
  * @param fallbackNumber Number used in the fallback file name.
  * @param format Export format, which contributes the file extension.
  * @returns The path of the product under the products folder.
  */
 function toProductPath(
-  product: Product,
+  product: Pick<Product, "name" | "folder">,
   fallbackNumber: number,
   format: ExportFormat,
 ): string {
   return [
     PRODUCTS_FOLDER,
-    toProductFolder(product, fallbackNumber),
+    ...(product.folder ? [product.folder] : []),
     toProductFileName(product, fallbackNumber, format),
   ].join("/");
 }
@@ -104,7 +124,7 @@ function toProductPath(
  * @returns A single-element array with the product path.
  */
 export function toProductPaths(
-  product: Product,
+  product: Pick<Product, "name" | "folder">,
   fallbackNumber: number,
   format: ExportFormat = defaultExportFormat,
 ): string[] {
@@ -112,8 +132,102 @@ export function toProductPaths(
 }
 
 /**
+ * Converts the package path of one product into the entry id the products
+ * collection assigns to it, dropping the collection folder and the extension.
+ * @param product Normalized product.
+ * @param fallbackNumber Number used in the fallback file name.
+ * @param format Export format, which contributes the file extension.
+ * @returns Entry id such as `panes/baguette`.
+ */
+function toProductEntryId(
+  product: Pick<Product, "name" | "folder">,
+  fallbackNumber: number,
+  format: ExportFormat,
+): string {
+  const path = toProductPath(product, fallbackNumber, format);
+  const prefix = `${PRODUCTS_FOLDER}/`;
+  const extension = `.${format.fileExtension}`;
+  return path.slice(prefix.length, path.length - extension.length);
+}
+
+/**
+ * Builds one document per category of the catalog, in editor order. Names that
+ * differ only in case share a document and keep the first spelling; a category
+ * used by a product but missing from the declared list is still exported, so a
+ * half edited package never loses a membership. The id is the slug of
+ * the name, or `category-<position>` when the name leaves no slug, with a
+ * numeric suffix added when two names would otherwise produce the same id.
+ * Product references are the entry ids of the products that declare the
+ * category, in catalog order.
+ * @param products Normalized products of the configuration.
+ * @param categories Normalized categories of the configuration.
+ * @param format Export format, used to derive the product entry ids.
+ * @returns Category documents ready to be serialized into the package.
+ */
+export function buildCategoryDocuments(
+  products: readonly Pick<Product, "name" | "folder" | "categories">[],
+  categories: readonly Category[],
+  format: ExportFormat,
+): CategoryDocument[] {
+  const byName = new Map<
+    string,
+    { name: string; description?: string; productIds: string[] }
+  >();
+
+  for (const category of categories) {
+    const name = category.name.trim();
+    if (name === "") continue;
+    const description = category.description?.trim();
+    byName.set(name.toLowerCase(), {
+      name,
+      ...(description ? { description } : {}),
+      productIds: [],
+    });
+  }
+
+  products.forEach((product, index) => {
+    const productId = toProductEntryId(product, index + 1, format);
+    for (const rawName of product.categories) {
+      const name = rawName.trim();
+      if (name === "") continue;
+      const key = name.toLowerCase();
+      let category = byName.get(key);
+      if (!category) {
+        category = { name, productIds: [] };
+        byName.set(key, category);
+      }
+      if (!category.productIds.includes(productId)) {
+        category.productIds.push(productId);
+      }
+    }
+  });
+
+  const usedIds = new Set<string>();
+  return [...byName.values()].map(
+    ({ name, description, productIds }, index) => {
+      const base = toSlug(name) || `category-${index + 1}`;
+      let id = base;
+      let suffix = 2;
+      while (usedIds.has(id)) {
+        id = `${base}-${suffix}`;
+        suffix += 1;
+      }
+      usedIds.add(id);
+      return {
+        id,
+        name,
+        ...(description ? { description } : {}),
+        products: productIds,
+      };
+    },
+  );
+}
+
+/**
  * Builds the whole configuration package as a path/content map: the site
- * configuration file first, then one product document per catalog entry.
+ * configuration file, the folder list when the user created any folder, one
+ * product document per catalog entry and one category document per distinct
+ * category name.
  * @param config Validated site configuration, as returned by `parseSiteConfig`.
  * @param format Export format, which contributes the file extension and
  * serialization by delegating to the format's own serializer.
@@ -128,10 +242,21 @@ export function buildSiteFileMap(
   const files: Record<string, string> = {
     [siteFile]: format.serialize(config.site),
   };
+  if (config.folders.length > 0) {
+    files[`${FOLDERS_FILE}.${format.fileExtension}`] = format.serialize({
+      folders: config.folders,
+    });
+  }
   config.products.forEach((product, index) => {
     files[toProductPath(product, index + 1, format)] = format.serialize(
       toProductDocument(product),
     );
   });
+  buildCategoryDocuments(config.products, config.categories, format).forEach(
+    (document) => {
+      files[`${CATEGORIES_FOLDER}/${document.id}.${format.fileExtension}`] =
+        format.serialize(document);
+    },
+  );
   return files;
 }

@@ -6,7 +6,11 @@
  * helpers shared by every navigation entry: the stable dependency key, the
  * DOM ids of the page inputs and the focus jump.
  */
-import type { ProductDraft, SiteMetaDraft } from "@/lib/catalog/schema";
+import type {
+  CategoryDraft,
+  ProductDraft,
+  SiteMetaDraft,
+} from "@/lib/catalog/schema";
 
 /** Kinds of page the editor can show on its main area. */
 export const EditorSectionKind = {
@@ -14,6 +18,8 @@ export const EditorSectionKind = {
   Config: "config",
   /** One product page, by position within the catalog. */
   Product: "product",
+  /** One category page, by position within the catalog. */
+  Category: "category",
   /** The export page, where the format is chosen and the download starts. */
   Export: "export",
 } as const;
@@ -34,6 +40,11 @@ export type EditorSection =
       index: number;
     }
   | {
+      /** One category page, by position within the catalog. */
+      kind: typeof EditorSectionKind.Category;
+      index: number;
+    }
+  | {
       /** The export page, where the format is chosen and the download starts. */
       kind: typeof EditorSectionKind.Export;
     };
@@ -44,9 +55,13 @@ export type EditorSection =
  * @returns String identifier of the section and its index.
  */
 export function toSectionKey(section: EditorSection): string {
-  return section.kind === EditorSectionKind.Product
-    ? `product-${section.index}`
-    : section.kind;
+  if (
+    section.kind === EditorSectionKind.Product ||
+    section.kind === EditorSectionKind.Category
+  ) {
+    return `${section.kind}-${section.index}`;
+  }
+  return section.kind;
 }
 
 /**
@@ -69,6 +84,19 @@ export function productInputId(
   field: keyof ProductDraft,
 ): string {
   return `product-${index}-${field}`;
+}
+
+/**
+ * DOM id of a category input, so its label can point at it and tests can select it.
+ * @param index Position of the category within the catalog.
+ * @param field Category draft field of the input.
+ * @returns The input id, like `category-0-name`.
+ */
+export function categoryInputId(
+  index: number,
+  field: keyof CategoryDraft,
+): string {
+  return `category-${index}-${field}`;
 }
 
 /**

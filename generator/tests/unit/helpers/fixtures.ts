@@ -4,29 +4,25 @@
  */
 import {
   BLANK_PRICE,
+  type Category,
+  type CategoryDraft,
   type Product,
   type ProductDraft,
   type SiteConfig,
   type SiteConfigDraft,
+  type SiteMeta,
   type SiteMetaDraft,
 } from "@/lib/catalog/schema";
-import type {
-  SiteMeta,
-  StoredDraft,
-} from "@custom-web-builder/shared/catalog-schema";
 
-export type { StoredDraft } from "@custom-web-builder/shared/catalog-schema";
-
-/** Product shape persisted before editor-only ids existed. */
-export type StoredProduct = StoredDraft["products"][number];
-
-/** Product fields shared by the fixtures, without the editor-only id. */
-const EMPTY_PRODUCT: Omit<ProductDraft, "id"> = {
+/** Product fields shared by the fixtures, without the editor-only identity fields. */
+const EMPTY_PRODUCT: Omit<ProductDraft, "id" | "sku" | "skuAuto"> = {
   name: "",
   categories: [],
-  description: "",
+  folder: "",
+  shortDescription: "Descripción breve",
   price: BLANK_PRICE,
-  imageUrl: "",
+  mainImage: "",
+  images: [],
 };
 
 /**
@@ -38,7 +34,14 @@ const EMPTY_PRODUCT: Omit<ProductDraft, "id"> = {
 export function productWith(
   overrides: Partial<ProductDraft> = {},
 ): ProductDraft {
-  return { id: 1, ...EMPTY_PRODUCT, ...overrides };
+  const id = overrides.id ?? 1;
+  return {
+    id,
+    ...EMPTY_PRODUCT,
+    sku: `SKU-ITEM-${String(id).padStart(3, "0")}`,
+    skuAuto: false,
+    ...overrides,
+  };
 }
 
 /**
@@ -50,18 +53,33 @@ export function productWith(
 export function normalizedProductWith(
   overrides: Partial<Product> = {},
 ): Product {
-  return { name: "", categories: [], price: 0, ...overrides };
+  return {
+    sku: "SKU-ITEM-001",
+    name: "",
+    categories: [],
+    price: 0,
+    shortDescription: "Descripción breve",
+    mainImage: "",
+    images: [],
+    ...overrides,
+  };
 }
 
 /**
- * Builds the shape of a product persisted before editor-only ids existed.
- * @param overrides Partial product fields merged over an empty valid base.
- * @returns A stored product without an id.
+ * Builds a category draft out of partial overrides, so tests only specify the
+ * fields under check.
+ * @param overrides Partial category draft merged over an empty valid base.
+ * @returns A complete category draft ready to be validated or persisted.
  */
-export function storedProductWith(
-  overrides: Partial<StoredProduct> = {},
-): StoredProduct {
-  return { ...EMPTY_PRODUCT, ...overrides };
+export function categoryWith(
+  overrides: Partial<CategoryDraft> = {},
+): CategoryDraft {
+  return {
+    id: 1,
+    name: "",
+    description: "",
+    ...overrides,
+  };
 }
 
 /**
@@ -69,13 +87,17 @@ export function storedProductWith(
  * nested site metadata, so tests only specify the fields under check.
  * @param overrides Partial draft merged over a valid base.
  * @param overrides.site Partial site metadata merged over the base site.
+ * @param overrides.folders Folder paths of the draft; defaults to none.
  * @param overrides.products Products of the draft; defaults to an empty catalog.
+ * @param overrides.categories Categories of the draft; defaults to an empty list.
  * @returns A complete site configuration draft ready to be validated.
  */
 export function draftWith(
   overrides: {
     site?: Partial<SiteMetaDraft>;
+    folders?: string[];
     products?: ProductDraft[];
+    categories?: CategoryDraft[];
   } = {},
 ): SiteConfigDraft {
   const base: SiteConfigDraft = {
@@ -84,21 +106,16 @@ export function draftWith(
       description: "",
       contactEmail: "",
     },
+    folders: [],
     products: [],
+    categories: [],
   };
   return {
     site: { ...base.site, ...overrides.site },
+    folders: overrides.folders ?? base.folders,
     products: overrides.products ?? base.products,
+    categories: overrides.categories ?? base.categories,
   };
-}
-
-/**
- * Builds the shape of a draft persisted before editor-only product ids existed.
- * @param products Stored products, possibly without an id.
- * @returns A stored draft document without editor-only product ids.
- */
-export function storedDraftWith(products: StoredProduct[] = []): StoredDraft {
-  return { site: draftWith().site, products };
 }
 
 /**
@@ -106,17 +123,28 @@ export function storedDraftWith(products: StoredProduct[] = []): StoredDraft {
  * nested site metadata, so tests only specify the fields under check.
  * @param overrides Partial configuration merged over a valid base.
  * @param overrides.site Partial site metadata merged over the base site.
+ * @param overrides.folders Folder paths of the configuration; defaults to none.
  * @param overrides.products Products of the configuration; defaults to none.
+ * @param overrides.categories Categories of the configuration; defaults to none.
  * @returns A complete normalized configuration ready to be exported.
  */
 export function siteConfigWith(
   overrides: {
     site?: Partial<SiteMeta>;
+    folders?: string[];
     products?: Product[];
+    categories?: Category[];
   } = {},
 ): SiteConfig {
   return {
-    site: { name: "Panadería María", ...overrides.site },
+    site: {
+      name: "Panadería María",
+      description: "",
+      contactEmail: "",
+      ...overrides.site,
+    },
+    folders: overrides.folders ?? [],
     products: overrides.products ?? [],
+    categories: overrides.categories ?? [],
   };
 }

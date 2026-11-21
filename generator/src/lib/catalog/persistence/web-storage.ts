@@ -7,14 +7,16 @@
  * degrades into "there was nothing stored" without ever reaching the editing
  * flow.
  *
- * The structural Zod schema of the stored document and the storage key are
- * defined once in the shared catalog model. The draft being edited may be
- * half filled, so that schema only checks that every field is the text-like
- * shape the editor reads back. It accepts products without an id — the shape
- * stored before ids existed — and the load fills the missing ids in, so older
- * drafts upgrade in place instead of being discarded.
+ * The structural Zod schema and the storage key are defined once in the shared
+ * catalog model. That schema is the partial of the rule-free shapes, so any
+ * field may be absent; the load completes the missing values before the draft
+ * reaches the editor.
  */
-import type { SiteConfigDraft } from "@/lib/catalog/schema";
+import {
+  BLANK_PRICE,
+  buildDefaultSku,
+  type SiteConfigDraft,
+} from "@/lib/catalog/schema";
 import type { DraftPersistence } from "@/lib/catalog/persistence/types";
 import {
   DRAFT_STORAGE_KEY,
@@ -28,24 +30,68 @@ export { DRAFT_STORAGE_KEY } from "@custom-web-builder/shared/catalog-schema";
 type WebStorage = Pick<Storage, "getItem" | "setItem"> | null;
 
 /**
- * Completes a stored draft so every product carries an id: ids already
- * stored are kept, and products without one (drafts saved before ids
- * existed) receive the next ids above the highest one found, so no id is
- * ever reused.
- * @param stored Draft read from the storage, with optional product ids.
- * @returns The same draft with every product carrying a valid id.
+ * Completes a stored draft so the editor receives a full `SiteConfigDraft`.
+ * Missing texts load blank, missing lists load empty and missing ids are
+ * assigned above the highest one found. A missing SKU is generated from the
+ * site and product names, avoiding every SKU already present.
+ * @param stored Draft read from storage; any field may be absent.
+ * @returns The draft with every current field present.
  */
-function withStoredProductIds(stored: StoredDraft): SiteConfigDraft {
-  let nextId = stored.products.reduce(
+function withCompleteDraft(stored: StoredDraft): SiteConfigDraft {
+  const storedProducts = stored.products ?? [];
+  const storedCategories = stored.categories ?? [];
+  let nextId = storedProducts.reduce(
     (max, product) => Math.max(max, product.id ?? 0),
     0,
   );
-  return {
-    site: stored.site,
-    products: stored.products.map((product) => ({
+
+  const taken = new Set<string>();
+  for (const product of storedProducts) {
+    const sku = product.sku?.trim().toUpperCase();
+    if (sku) taken.add(sku);
+  }
+
+  const products = storedProducts.map((product) => {
+    const storedSku = product.sku?.trim().toUpperCase() ?? "";
+    const hasSku = storedSku !== "";
+    const sku = hasSku
+      ? storedSku
+      : buildDefaultSku(stored.site?.name ?? "", product.name ?? "", taken);
+    taken.add(sku);
+    return {
       ...product,
+      sku,
+      skuAuto: product.skuAuto ?? !hasSku,
+      name: product.name ?? "",
+      price: product.price ?? BLANK_PRICE,
+      categories: product.categories ?? [],
+      folder: product.folder ?? "",
+      shortDescription: product.shortDescription ?? "",
+      mainImage: product.mainImage ?? "",
+      images: product.images ?? [],
       id: product.id ?? ++nextId,
-    })),
+    };
+  });
+
+  let nextCategoryId = storedCategories.reduce(
+    (max, category) => Math.max(max, category.id ?? 0),
+    0,
+  );
+  const categories = storedCategories.map((category) => ({
+    id: category.id ?? ++nextCategoryId,
+    name: category.name ?? "",
+    description: category.description ?? "",
+  }));
+
+  return {
+    site: {
+      name: stored.site?.name ?? "",
+      description: stored.site?.description ?? "",
+      contactEmail: stored.site?.contactEmail ?? "",
+    },
+    folders: stored.folders ?? [],
+    products,
+    categories,
   };
 }
 
@@ -78,7 +124,7 @@ export function createWebStorageDraftPersistence(
 
     try {
       const result = storedDraftSchema.safeParse(JSON.parse(raw));
-      return result.success ? withStoredProductIds(result.data) : undefined;
+      return result.success ? withCompleteDraft(result.data) : undefined;
     } catch {
       return undefined;
     }

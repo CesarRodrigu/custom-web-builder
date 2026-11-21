@@ -48,7 +48,9 @@ test.describe("configuration editor in Spanish", () => {
 
     await page.getByRole("button", { name: "Añadir producto" }).click();
     await expect(page.getByRole("button", { name: "product-1" })).toBeVisible();
-    await expect(page.getByText("Este campo es obligatorio.")).toBeVisible();
+    await expect(
+      page.getByText("Este campo es obligatorio.").first(),
+    ).toBeVisible();
     await expect(page.getByText("Introduce un precio válido")).toBeVisible();
 
     await page.getByLabel("Nombre del producto").fill("Tarta de manzana");
@@ -56,6 +58,7 @@ test.describe("configuration editor in Spanish", () => {
       page.getByRole("button", { name: "tarta-de-manzana" }),
     ).toBeVisible();
     await page.getByLabel("Precio").fill("19,99");
+    await page.getByLabel("Descripción corta").fill("Texto breve");
     await expect(page.getByText("Este campo es obligatorio.")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Exportar", exact: true }).click();
@@ -73,20 +76,63 @@ test.describe("configuration editor in Spanish", () => {
     );
     const siteDocument = await packageZip.file("site.json")?.async("string");
     const productDocument = await packageZip
-      .file("products/t/tarta-de-manzana.json")
+      .file("products/tarta-de-manzana.json")
       ?.async("string");
     expect(JSON.parse(siteDocument ?? "")).toEqual({
       name: "Panadería María",
+      description: "",
       contactEmail: "hola@panaderia.com",
     });
     expect(JSON.parse(productDocument ?? "")).toEqual({
+      sku: "PANADERIA-TARTA-DE-MANZANA-001",
       name: "Tarta de manzana",
       price: 19.99,
       categories: [],
+      shortDescription: "Texto breve",
+      mainImage: "",
+      images: [],
     });
   });
 
-  test("exports the package with the site file and one file per product", async ({
+  test("adds a new empty product only after the current one is complete", async ({
+    page,
+  }) => {
+    await page.goto("/es/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Nombre del sitio").fill("Panadería María");
+    await page.getByRole("button", { name: "Añadir producto" }).click();
+
+    await page.getByRole("button", { name: "Añadir y continuar" }).click();
+    await expect(
+      page.getByText(
+        "Completa los campos marcados antes de añadir otro producto.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "product-1" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "product-2" })).toHaveCount(
+      0,
+    );
+
+    await page.getByLabel("Nombre del producto").fill("Tarta");
+    await page.getByLabel("Precio").fill("5");
+    await page.getByLabel("Descripción corta").fill("Texto breve");
+    await expect(
+      page.getByText(
+        "Completa los campos marcados antes de añadir otro producto.",
+      ),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Añadir y continuar" }).click();
+    await expect(page.getByRole("button", { name: "product-2" })).toBeVisible();
+    await expect(page.getByLabel("Nombre del producto")).toHaveValue("");
+    await expect(page.getByLabel("Precio")).toHaveValue("");
+    await expect(
+      page.getByRole("button", { name: "tarta", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("exports the package with the site file, one file per product and one per category", async ({
     page,
   }) => {
     await page.goto("/es/");
@@ -96,6 +142,7 @@ test.describe("configuration editor in Spanish", () => {
     await page.getByRole("button", { name: "Añadir producto" }).click();
     await page.getByLabel("Nombre del producto").fill("Tarta de manzana");
     await page.getByLabel("Precio").fill("19,99");
+    await page.getByLabel("Descripción corta").fill("Texto breve");
 
     const categoryInput = page.getByLabel("Categoría");
     await categoryInput.click();
@@ -107,9 +154,6 @@ test.describe("configuration editor in Spanish", () => {
       }),
     ).toBeVisible();
 
-    await expect(
-      page.getByRole("button", { name: "t", exact: true }),
-    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "tarta-de-manzana" }),
     ).toBeVisible();
@@ -134,13 +178,208 @@ test.describe("configuration editor in Spanish", () => {
     );
     const siteDocument = await packageZip.file("site.yaml")?.async("string");
     const productDocument = await packageZip
-      .file("products/t/tarta-de-manzana.yaml")
+      .file("products/tarta-de-manzana.yaml")
+      ?.async("string");
+    const categoryDocument = await packageZip
+      .file("categories/tartas.yaml")
       ?.async("string");
     // The site name has non ASCII characters, so the serializer quotes it.
     expect(siteDocument).toContain('name: "Panadería María"');
+    expect(categoryDocument).toContain("id: tartas");
+    expect(categoryDocument).toContain("products:");
+    expect(categoryDocument).toContain("tarta-de-manzana");
     expect(productDocument).toContain("name: Tarta de manzana");
     expect(productDocument).toContain("price: 19.99");
     expect(productDocument).toContain("categories:");
+    expect(productDocument).toContain("shortDescription: Texto breve");
+  });
+
+  test("edits a category, removes a product from it and exports the result", async ({
+    page,
+  }) => {
+    await page.goto("/es/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Nombre del sitio").fill("Panadería María");
+    await page.getByRole("button", { name: "Añadir producto" }).click();
+    await page.getByLabel("Nombre del producto").fill("Tarta de manzana");
+    await page.getByLabel("Precio").fill("19,99");
+    await page.getByLabel("Descripción corta").fill("Texto breve");
+    const categoryInput = page.getByLabel("Categoría");
+    await categoryInput.click();
+    await categoryInput.fill("Tartas");
+    await categoryInput.press("Enter");
+
+    await expect(
+      page.getByRole("button", { name: "tartas", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "tartas", exact: true }).click();
+
+    await expect(page.getByRole("heading", { name: "Tartas" })).toBeVisible();
+    await expect(page.getByText("Tarta de manzana")).toBeVisible();
+
+    await page.getByLabel("Nombre de la categoría").fill("Postres");
+    await page
+      .getByLabel("Descripción de la categoría")
+      .fill("Tartas para compartir");
+    await expect(page.getByRole("heading", { name: "Postres" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "postres", exact: true }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", {
+        name: "Quitar de la categoría: Tarta de manzana",
+      })
+      .click();
+    await expect(
+      page.getByText("Esta categoría todavía no tiene productos."),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Exportar", exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Descargar configuración" }).click();
+    const download = await downloadPromise;
+    const packageZip = await JSZip.loadAsync(
+      readFileSync(await download.path()),
+    );
+    const categoryDocument = await packageZip
+      .file("categories/postres.json")
+      ?.async("string");
+    const productDocument = await packageZip
+      .file("products/tarta-de-manzana.json")
+      ?.async("string");
+    expect(JSON.parse(categoryDocument ?? "")).toEqual({
+      id: "postres",
+      name: "Postres",
+      description: "Tartas para compartir",
+      products: [],
+    });
+    expect(JSON.parse(productDocument ?? "").categories).toEqual([]);
+  });
+
+  test("adds a category from the sidebar and keeps it with no products", async ({
+    page,
+  }) => {
+    await page.goto("/en/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Site name").fill("Bakery");
+    await page.getByRole("button", { name: "Add category" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Category 1" }),
+    ).toBeVisible();
+
+    await page.getByLabel("Category name").fill("Drinks");
+    await page
+      .getByLabel("Category description")
+      .fill("Coffee and soft drinks");
+    await expect(
+      page.getByRole("button", { name: "drinks", exact: true }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download configuration" }).click();
+    const download = await downloadPromise;
+    const packageZip = await JSZip.loadAsync(
+      readFileSync(await download.path()),
+    );
+    expect(
+      JSON.parse(
+        (await packageZip.file("categories/drinks.json")?.async("string")) ??
+          "",
+      ),
+    ).toEqual({
+      id: "drinks",
+      name: "Drinks",
+      description: "Coffee and soft drinks",
+      products: [],
+    });
+  });
+
+  test("marks a category file only when that category has a field error", async ({
+    page,
+  }) => {
+    await page.goto("/es/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Nombre del sitio").fill("Panadería María");
+    await page.getByRole("button", { name: "Añadir categoría" }).click();
+    await page.getByLabel("Nombre de la categoría").fill("Bebidas");
+    const categoryFile = page.getByRole("button", {
+      name: "bebidas",
+      exact: true,
+    });
+    await expect(categoryFile).toBeVisible();
+
+    await page.getByRole("button", { name: "site", exact: true }).click();
+    await page.getByLabel("Nombre del sitio").fill("");
+    await expect(
+      page.getByRole("button", { name: "site", exact: true }),
+    ).toHaveClass(/text-destructive/);
+    await expect(categoryFile).not.toHaveClass(/text-destructive/);
+
+    await categoryFile.click();
+    await page.getByLabel("Nombre de la categoría").fill("");
+    await expect(
+      page.getByRole("button", { name: "category-1", exact: true }),
+    ).toHaveClass(/text-destructive/);
+  });
+
+  test("exports the optional product fields entered in the editor", async ({
+    page,
+  }) => {
+    await page.goto("/es/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Nombre del sitio").fill("Panadería María");
+    await page.getByRole("button", { name: "Añadir producto" }).click();
+    await page.getByLabel("Nombre del producto").fill("Tarta de manzana");
+    await page.getByLabel("Precio").fill("19,99");
+    await page.getByLabel("Descripción corta").fill("Texto breve");
+    await page.getByLabel("Descripción larga").fill("Texto largo");
+    await page.getByLabel("Stock").fill("12");
+    await page.getByRole("combobox", { name: "Estado" }).click();
+    await page.getByRole("option", { name: "Recomendado" }).click();
+    await expect(page.getByRole("combobox", { name: "Estado" })).toContainText(
+      "Recomendado",
+    );
+    await page.getByRole("combobox", { name: "Estado" }).click();
+    await page.getByRole("option", { name: "Sin estado especial" }).click();
+    await expect(page.getByRole("combobox", { name: "Estado" })).toContainText(
+      "Sin estado especial",
+    );
+    await page.getByRole("combobox", { name: "Estado" }).click();
+    await page.getByRole("option", { name: "Recomendado" }).click();
+    await page
+      .getByLabel("Galería de imágenes")
+      .fill("/images/tarta-1.jpg\n/images/tarta-2.jpg");
+    await page.getByLabel("Imagen principal").fill("/images/tarta-1.jpg");
+
+    await page.getByRole("button", { name: "Exportar", exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Descargar configuración" }).click();
+    const download = await downloadPromise;
+
+    const packageZip = await JSZip.loadAsync(
+      readFileSync(await download.path()),
+    );
+    const productDocument = await packageZip
+      .file("products/tarta-de-manzana.json")
+      ?.async("string");
+    expect(JSON.parse(productDocument ?? "")).toEqual({
+      sku: "PANADERIA-TARTA-DE-MANZANA-001",
+      name: "Tarta de manzana",
+      price: 19.99,
+      categories: [],
+      shortDescription: "Texto breve",
+      longDescription: "Texto largo",
+      stock: 12,
+      status: "recommended",
+      mainImage: "/images/tarta-1.jpg",
+      images: ["/images/tarta-1.jpg", "/images/tarta-2.jpg"],
+    });
   });
 
   test("keeps the draft across a page reload", async ({ page }) => {
@@ -279,6 +518,59 @@ test.describe("configuration editor in Spanish", () => {
     ).toBeVisible();
   });
 
+  test("generates unique SKUs from the entered data and validates manual ones", async ({
+    page,
+  }) => {
+    await page.goto("/es/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Nombre del sitio").fill("Panadería María");
+    await page.getByRole("button", { name: "Añadir producto" }).click();
+    await expect(page.getByLabel("Código (SKU)")).toHaveValue(
+      "PANADERIA-ITEM-001",
+    );
+
+    await page.getByLabel("Nombre del producto").fill("Tarta");
+    await expect(page.getByLabel("Código (SKU)")).toHaveValue(
+      "PANADERIA-TARTA-001",
+    );
+
+    await page.getByLabel("Precio").fill("5");
+    await page.getByLabel("Descripción corta").fill("Texto breve");
+    await page.getByRole("button", { name: "Añadir y continuar" }).click();
+
+    await page.getByLabel("Nombre del producto").fill("Pan");
+    await expect(page.getByLabel("Código (SKU)")).toHaveValue(
+      "PANADERIA-PAN-001",
+    );
+
+    // A manual code takes precedence: the automatic code of the first
+    // product moves to the next free sequence instead of colliding with it.
+    await page.getByLabel("Código (SKU)").fill("panaderia-tarta-001");
+    await expect(page.getByLabel("Código (SKU)")).toHaveValue(
+      "PANADERIA-TARTA-001",
+    );
+    await page.getByRole("button", { name: "tarta", exact: true }).click();
+    await expect(page.getByLabel("Código (SKU)")).toHaveValue(
+      "PANADERIA-TARTA-002",
+    );
+
+    // Two manual codes that match are reported and block the export.
+    await page.getByLabel("Código (SKU)").fill("panaderia-tarta-001");
+    await expect(
+      page.getByText("Otro producto del catálogo ya usa este código."),
+    ).toBeVisible();
+
+    // The inline action restores generation and frees the taken code.
+    await page.getByRole("button", { name: "Generar código" }).click();
+    await expect(page.getByLabel("Código (SKU)")).toHaveValue(
+      "PANADERIA-TARTA-002",
+    );
+    await expect(
+      page.getByText("Otro producto del catálogo ya usa este código."),
+    ).toHaveCount(0);
+  });
+
   test("reports duplicate product names and blocks the export", async ({
     page,
   }) => {
@@ -327,12 +619,15 @@ test.describe("configuration editor in English", () => {
     await page.getByLabel("Site name").fill("Maria's Bakery");
     await page.getByRole("button", { name: "Add product" }).click();
     await expect(page.getByRole("button", { name: "product-1" })).toBeVisible();
-    await expect(page.getByText("This field is required.")).toBeVisible();
+    await expect(
+      page.getByText("This field is required.").first(),
+    ).toBeVisible();
     await expect(page.getByText("Enter a valid price")).toBeVisible();
 
     await page.getByLabel("Product name").fill("Apple pie");
     await expect(page.getByRole("button", { name: "apple-pie" })).toBeVisible();
     await page.getByLabel("Price").fill("12.50");
+    await page.getByLabel("Short description").fill("Brief text");
 
     await page.getByRole("button", { name: "Export", exact: true }).click();
     await expect(
@@ -349,15 +644,216 @@ test.describe("configuration editor in English", () => {
     );
     const siteDocument = await packageZip.file("site.json")?.async("string");
     const productDocument = await packageZip
-      .file("products/a/apple-pie.json")
+      .file("products/apple-pie.json")
       ?.async("string");
     expect(JSON.parse(siteDocument ?? "")).toEqual({
       name: "Maria's Bakery",
+      description: "",
+      contactEmail: "",
     });
     expect(JSON.parse(productDocument ?? "")).toEqual({
+      sku: "MARIA-APPLE-PIE-001",
       name: "Apple pie",
       price: 12.5,
       categories: [],
+      shortDescription: "Brief text",
+      mainImage: "",
+      images: [],
     });
+  });
+
+  test("adds a new empty product only after the current one is complete", async ({
+    page,
+  }) => {
+    await page.goto("/en/");
+    await waitForEditorHydration(page);
+
+    await page.getByRole("button", { name: "Add product" }).click();
+    await page.getByRole("button", { name: "Add and continue" }).click();
+    await expect(
+      page.getByText(
+        "Fill in the marked fields before adding another product.",
+      ),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "product-1" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "product-2" })).toHaveCount(
+      0,
+    );
+
+    await page.getByLabel("Product name").fill("Apple pie");
+    await page.getByLabel("Price").fill("12.50");
+    await page.getByLabel("Short description").fill("Brief text");
+    await page.getByRole("button", { name: "Add and continue" }).click();
+    await expect(page.getByRole("button", { name: "product-2" })).toBeVisible();
+    await expect(page.getByLabel("Product name")).toHaveValue("");
+    await expect(page.getByLabel("Price")).toHaveValue("");
+  });
+
+  test("shows a disabled delete action on the products root folder", async ({
+    page,
+  }) => {
+    await page.goto("/en/");
+    await waitForEditorHydration(page);
+
+    const productsRow = page
+      .getByRole("button", { name: "products", exact: true })
+      .locator("..");
+    await expect(
+      productsRow.getByRole("button", { name: "Delete folder" }),
+    ).toBeDisabled();
+
+    await page.getByRole("button", { name: "Add folder" }).click();
+    const folderInput = page.getByRole("textbox", { name: "Add folder" });
+    await folderInput.fill("Sweets");
+    await folderInput.press("Enter");
+
+    const sweetsRow = page
+      .getByRole("button", { name: "sweets", exact: true })
+      .locator("..");
+    await expect(
+      sweetsRow.getByRole("button", { name: "Delete folder" }),
+    ).toBeEnabled();
+  });
+
+  test("creates a nested folder and moves a product into it by dragging", async ({
+    page,
+  }) => {
+    await page.goto("/en/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Site name").fill("Bakery");
+    await page.getByRole("button", { name: "Add product" }).click();
+    await page.getByLabel("Product name").fill("Apple pie");
+    await page.getByLabel("Price").fill("12.50");
+    await page.getByLabel("Short description").fill("Brief text");
+    await expect(page.getByRole("button", { name: "apple-pie" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Add folder" }).click();
+    const folderInput = page.getByRole("textbox", { name: "Add folder" });
+    await folderInput.fill("Sweets/Cakes");
+    await folderInput.press("Enter");
+
+    await expect(
+      page.getByRole("button", { name: "sweets", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "cakes", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "apple-pie" })
+      .dragTo(page.getByRole("button", { name: "cakes", exact: true }));
+
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download configuration" }).click();
+    const download = await downloadPromise;
+    const packageZip = await JSZip.loadAsync(
+      readFileSync(await download.path()),
+    );
+
+    expect(
+      await packageZip
+        .file("products/sweets/cakes/apple-pie.json")
+        ?.async("string"),
+    ).toContain("Apple pie");
+    expect(
+      JSON.parse(
+        (await packageZip.file("folders.json")?.async("string")) ?? "{}",
+      ),
+    ).toEqual({ folders: ["sweets", "sweets/cakes"] });
+  });
+
+  test("adds a product to the folder whose add button was used", async ({
+    page,
+  }) => {
+    await page.goto("/en/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Site name").fill("Bakery");
+    await page.getByRole("button", { name: "Add folder" }).click();
+    const folderInput = page.getByRole("textbox", { name: "Add folder" });
+    await folderInput.fill("Sweets");
+    await folderInput.press("Enter");
+    await expect(
+      page.getByRole("button", { name: "sweets", exact: true }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Add subfolder" }).click();
+    const subfolderInput = page.getByRole("textbox", {
+      name: "Add subfolder",
+    });
+    await subfolderInput.fill("Cakes");
+    await subfolderInput.press("Enter");
+    await expect(
+      page.getByRole("button", { name: "cakes", exact: true }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: 'Add product to "cakes"' }).click();
+    await page.getByLabel("Product name").fill("Apple pie");
+    await page.getByLabel("Price").fill("12.50");
+    await page.getByLabel("Short description").fill("Brief text");
+
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download configuration" }).click();
+    const download = await downloadPromise;
+    const packageZip = await JSZip.loadAsync(
+      readFileSync(await download.path()),
+    );
+
+    expect(
+      packageZip.file("products/sweets/cakes/apple-pie.json"),
+    ).not.toBeNull();
+    expect(packageZip.file("products/apple-pie.json")).toBeNull();
+  });
+
+  test("returns a product to the products root when its folder is deleted", async ({
+    page,
+  }) => {
+    await page.goto("/en/");
+    await waitForEditorHydration(page);
+
+    await page.getByLabel("Site name").fill("Bakery");
+    await page.getByRole("button", { name: "Add product" }).click();
+    await page.getByLabel("Product name").fill("Apple pie");
+    await page.getByLabel("Price").fill("12.50");
+    await page.getByLabel("Short description").fill("Brief text");
+
+    await page.getByRole("button", { name: "Add folder" }).click();
+    const folderInput = page.getByRole("textbox", { name: "Add folder" });
+    await folderInput.fill("Sweets");
+    await folderInput.press("Enter");
+    await expect(
+      page.getByRole("button", { name: "sweets", exact: true }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", { name: "apple-pie" })
+      .dragTo(page.getByRole("button", { name: "sweets", exact: true }));
+
+    await page
+      .getByRole("button", { name: "sweets", exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Delete folder" })
+      .click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Delete folder" }).click();
+
+    await expect(
+      page.getByRole("button", { name: "sweets", exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "apple-pie" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download configuration" }).click();
+    const download = await downloadPromise;
+    const packageZip = await JSZip.loadAsync(
+      readFileSync(await download.path()),
+    );
+
+    expect(packageZip.file("products/apple-pie.json")).not.toBeNull();
+    expect(packageZip.file("folders.json")).toBeNull();
   });
 });

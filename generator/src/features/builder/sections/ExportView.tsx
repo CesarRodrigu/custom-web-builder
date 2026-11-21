@@ -55,8 +55,8 @@ function saveBlob(blob: Blob, fileName: string): void {
 }
 
 /**
- * Builds the ZIP of the whole configuration package (site file plus one file
- * per product inside its category folder chains) and downloads it.
+ * Builds the ZIP of the whole configuration package (site file, one file per
+ * product and one file per generated category) and downloads it.
  * @param config Validated site configuration.
  * @param format Selected export format, describing MIME type and extension.
  */
