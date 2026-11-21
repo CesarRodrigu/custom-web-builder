@@ -3,20 +3,23 @@
  * it.
  *
  * A product carries its own data and its flat category names. The generator
- * writes one document per category folder chain, but the categories are also
- * part of the document, so the reader never has to recover them from the file
- * path. One schema describes the product in both places: the writer, the
- * editor and the front-end all validate against this definition. The optional
- * editor-only `id` and the optional fields of older packages are part of the
- * same shape, so a field added here reaches every consumer at once.
+ * writes one document per product and the front-end reads it back, so
+ * `productSchema` is the document contract: it holds only the fields that are
+ * exported. The editor edits `productDraftSchema`, which extends the document
+ * schema with the editor-only `id` and `skuAuto`. The writer, the editor and
+ * the front-end therefore share one definition, so a field added to the
+ * document reaches every consumer at once.
  */
 import { z } from "astro/zod";
 
 import {
   IMAGE_URL_PATTERN,
   ValidationCode,
+  isEmptyOr,
   isFilled,
   isValidCategoryName,
+  isValidFolderPath,
+  isValidSku,
   matches,
 } from "./validation";
 
@@ -65,22 +68,77 @@ function isProductImageReference(value: string): boolean {
 }
 
 /**
- * Zod schema of a product, shared by the editor and the exported package.
- *
- * `name`, `price` and `categories` are required: the generator always writes
- * them and every reader needs them. Prices are numbers with at most two
- * decimals; the editor converts the decimal comma it accepts in its inputs
- * before validating. Every rule emits a stable `ValidationCode` as its issue
- * message, so the editor can localize it without inspecting the rule. The
- * remaining fields are optional because the exporter omits blank values and
- * older packages may not have them.
+ * Reports whether the main image belongs to the gallery: both are blank, or
+ * the main image is one of the gallery references.
+ * @param product Product carrying the main image and its gallery.
+ * @param product.mainImage Primary image reference.
+ * @param product.images Gallery references.
+ * @returns True when the main image is blank with an empty gallery, or listed
+ * in the gallery.
  */
-export const productSchema = z.object({
-  /** Incremental id of the product; editor only, absent from exported documents. */
-  id: z.number().int().positive().optional(),
-  /** Display name of the product; required. */
+export function isMainImageConsistent(product: {
+  mainImage: string;
+  images: readonly string[];
+}): boolean {
+  const main = product.mainImage.trim();
+  const images = product.images.map((image) => image.trim());
+  return main === "" ? images.length === 0 : images.includes(main);
+}
+
+/**
+ * Properties of the exported product document, with their types and no
+ * validation rules.
+ *
+ * Every variant derives from this shape: the document and the draft add their
+ * rules, and the stored draft derives its partial here, so no editing rule
+ * reaches the persisted document.
+ */
+export const productDocumentShape = z.object({
+  /** Commercial code of the product. */
+  sku: z.string(),
+  /** Display name of the product. */
+  name: z.string(),
+  /** Price of the product. */
+  price: z.number(),
+  /** Flat category names of the product. */
+  categories: z.array(z.string()),
+  /** Folder path below `products/`, when the product is not at the root. */
+  folder: z.string().optional(),
+  /** Short free text shown under the name on cards and detail pages. */
+  shortDescription: z.string(),
+  /** Long free text shown only on the detail page, when provided. */
+  longDescription: z.string().optional(),
+  /** Units available in stock, when the export tracks them. */
+  stock: z.number().optional(),
+  /** Highlight or availability status, when the product declares one. */
+  status: z.enum(ProductStatus).optional(),
+  /** Primary image of the product. */
+  mainImage: z.string(),
+  /** URLs or public paths of every product image, in gallery order. */
+  images: z.array(z.string()),
+});
+
+/**
+ * Zod schema of the exported product document, before the cross-field check.
+ *
+ * It applies the field rules to `productDocumentShape`. `sku`, `name`, `price`,
+ * `categories`, `folder`, `shortDescription`, `mainImage` and `images` are
+ * always written by the generator and every reader needs them. Prices are
+ * numbers with at most two decimals; the editor converts the decimal comma it
+ * accepts in its inputs before validating. Every rule emits a stable
+ * `ValidationCode` as its issue message, so the editor can localize it without
+ * inspecting the rule. The remaining fields are optional because the exporter
+ * omits blank values.
+ */
+const productDocumentSchema = productDocumentShape.extend({
+  /** Commercial code of the product. */
+  sku: z
+    .string()
+    .refine(isFilled, ValidationCode.Required)
+    .refine(isValidSku, ValidationCode.Sku),
+  /** Display name of the product. */
   name: z.string().refine(isFilled, ValidationCode.Required),
-  /** Non-negative price with at most two decimals; required. */
+  /** Non-negative price with at most two decimals. */
   price: z
     .number({ error: ValidationCode.Price })
     .refine(
@@ -91,65 +149,102 @@ export const productSchema = z.object({
   categories: z.array(
     z.string().refine(isValidCategoryName, ValidationCode.Category),
   ),
-  /** Short free text shown under the name on cards and detail pages, when provided. */
-  shortDescription: z.string().optional(),
-  /** Long free text shown only on the detail page, when provided. */
-  longDescription: z.string().optional(),
-  /**
-   * Short free text of packages exported before `shortDescription` existed;
-   * readers fall back to it when the newer field is missing, and the editor
-   * writes it because it is the only description field it exposes.
-   * @deprecated Write `shortDescription` instead.
-   */
-  description: z.string().optional(),
+  /** Folder path below `products/`, blank when the product stays at the root. */
+  folder: z
+    .string()
+    .refine(isEmptyOr(isValidFolderPath), ValidationCode.Folder)
+    .optional(),
+  /** Short free text shown under the name on cards and detail pages. */
+  shortDescription: z.string().refine(isFilled, ValidationCode.Required),
   /** Units available in stock, when the export tracks them. */
   stock: z.number().int().nonnegative().optional(),
-  /** Highlight or availability status, when the product declares one. */
-  status: z.enum(ProductStatus).optional(),
-  /** URL or public path of the main product image, when provided. */
-  imageUrl: z
-    .string()
-    .refine(isProductImageReference, ValidationCode.Url)
-    .optional(),
+  /** Primary image, one of the gallery references or blank without a gallery. */
+  mainImage: z.string().refine(isProductImageReference, ValidationCode.Url),
   /** URLs or public paths of every product image, in gallery order. */
-  images: z.array(z.string()).optional().default([]),
+  images: z.array(
+    z.string().refine(isProductImageReference, ValidationCode.Url),
+  ),
 });
+
+/**
+ * Zod schema of the exported product document: the document shape plus the
+ * rule that the main image belongs to the gallery.
+ */
+export const productSchema = productDocumentSchema.superRefine(
+  (product, context) => {
+    if (!isMainImageConsistent(product)) {
+      context.addIssue({
+        code: "custom",
+        message: ValidationCode.MainImage,
+        path: ["mainImage"],
+      });
+    }
+  },
+);
 
 /** Normalized product of the configuration the generator exports. */
 export type Product = z.input<typeof productSchema>;
 
 /**
  * Product document once read back, with the defaults of the schema applied.
- * The editor-only id is omitted: exported documents never carry it.
+ * Exported documents never carry editor-only fields.
  */
-export type ParsedProduct = Omit<z.output<typeof productSchema>, "id">;
+export type ParsedProduct = z.output<typeof productSchema>;
 
 /**
- * Product as edited in the form: the same document, always carrying an id and
- * the two text fields the form renders, even when the user leaves them blank.
+ * Properties of a product as edited in the form, with no validation rules.
+ *
+ * It adds the editor-only fields to `productDocumentShape` and makes the folder
+ * always present, as the form renders it even when blank. The stored draft
+ * derives its partial from this shape.
  */
-export type ProductDraft = Product & {
-  /** Incremental id the editor uses to track the row. */
-  id: number;
-  /** Free text shown under the name; blank while editing. */
-  description: string;
-  /** Image reference; blank while editing. */
-  imageUrl: string;
-};
+export const productDraftShape = productDocumentShape.extend({
+  /** Incremental id of the product; editor only. */
+  id: z.number(),
+  /** Whether the SKU still follows the product and site data automatically. */
+  skuAuto: z.boolean(),
+  /** Folder path below `products/`; blank while the product is at the root. */
+  folder: z.string(),
+});
+
+/**
+ * Zod schema of a product as edited in the form.
+ *
+ * It applies the editing rules to `productDocumentSchema` and adds the fields
+ * that only exist while the user edits: the row id and whether the SKU still
+ * follows the catalog data. The cross-field main image rule is applied by the
+ * configuration schema, so the editor reports it once per product.
+ */
+export const productDraftSchema = productDocumentSchema.extend({
+  /** Incremental id of the product; editor only. */
+  id: z.number({ error: ValidationCode.Required }).int().positive(),
+  /** Whether the SKU still follows the product and site data automatically. */
+  skuAuto: z.boolean(),
+  /** Folder path below `products/`; blank while the product is at the root. */
+  folder: z
+    .string()
+    .refine(isEmptyOr(isValidFolderPath), ValidationCode.Folder),
+});
+
+/**
+ * Product as edited in the form: the exported document extended with the
+ * editor-only fields.
+ */
+export type ProductDraft = z.input<typeof productDraftSchema>;
 
 /**
  * Plain text fields of a product that the editor edits with one input each;
  * categories and the editor-only id are handled by their own controls.
  */
 export const ProductTextField = {
+  /** Commercial code of the product. */
+  Sku: "sku",
   /** Display name of the product. */
   Name: "name",
-  /** Free text shown under the name. */
-  Description: "description",
   /** Non-negative price of the product. */
   Price: "price",
-  /** URL of the product image. */
-  ImageUrl: "imageUrl",
+  /** Primary image of the product. */
+  MainImage: "mainImage",
 } as const satisfies Record<string, keyof ProductDraft>;
 
 /** Plain text field of a product that the editor edits with one input. */

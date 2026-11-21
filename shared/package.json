@@ -17,7 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "run-p lint format:check",
-    "check:all": "run-p test check"
+    "check:all": "run-p test check",
+    "typecheck": "astro check"
   },
   "peerDependencies": {
     "astro": "^7.4.11"
@@ -28,6 +29,7 @@
     }
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.12",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
     "@vitest/coverage-v8": "^5.1.1",
@@ -37,6 +39,7 @@
     "globals": "^17.14.0",
     "npm-run-all2": "^9.0.4",
     "prettier": "3.9.10",
+    "typescript": "6.0.3",
     "typescript-eslint": "^8.72.2",
     "vitest": "^5.1.1"
   }

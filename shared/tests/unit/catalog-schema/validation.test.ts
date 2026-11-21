@@ -3,10 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   IMAGE_URL_PATTERN,
   PRICE_PATTERN,
+  SKU_PATTERN,
   ValidationCode,
   isEmptyOr,
   isFilled,
   isValidCategoryName,
+  isValidFolderPath,
+  isValidSku,
   matches,
   toValidationCode,
 } from "@/catalog-schema/validation";
@@ -116,6 +119,93 @@ describe("isValidCategoryName", () => {
   });
 });
 
+describe("isValidFolderPath", () => {
+  it.each([
+    { name: "accepts a single folder", value: "dulces", expected: true },
+    {
+      name: "accepts a nested path",
+      value: "dulces/tartas",
+      expected: true,
+    },
+    {
+      name: "accepts slugged labels with hyphens and digits",
+      value: "productos-2/tartas-de-manzana",
+      expected: true,
+    },
+    {
+      name: "trims the value before checking it",
+      value: "  dulces/tartas  ",
+      expected: true,
+    },
+    { name: "rejects an empty path", value: "", expected: false },
+    { name: "rejects a leading slash", value: "/dulces", expected: false },
+    { name: "rejects a trailing slash", value: "dulces/", expected: false },
+    {
+      name: "rejects an empty segment",
+      value: "dulces//tartas",
+      expected: false,
+    },
+    {
+      name: "rejects a parent segment",
+      value: "dulces/../tartas",
+      expected: false,
+    },
+    { name: "rejects a backslash", value: "dulces\\tartas", expected: false },
+    {
+      name: "rejects unslugged labels",
+      value: "Dulces/Tartas",
+      expected: false,
+    },
+  ])("$name", ({ value, expected }) => {
+    expect(isValidFolderPath(value)).toBe(expected);
+  });
+});
+
+describe("isValidSku", () => {
+  it.each([
+    {
+      name: "accepts a generated code",
+      value: "PANADERIA-TARTA-001",
+      expected: true,
+    },
+    {
+      name: "accepts digits in a group",
+      value: "SKU-ITEM-002",
+      expected: true,
+    },
+    {
+      name: "trims the value before checking it",
+      value: "  MARIA-001  ",
+      expected: true,
+    },
+    {
+      name: "rejects lowercase",
+      value: "panaderia-tarta-001",
+      expected: false,
+    },
+    {
+      name: "rejects spaces inside a group",
+      value: "PANADERIA TARTA-001",
+      expected: false,
+    },
+    {
+      name: "rejects an empty group",
+      value: "PANADERIA--TARTA",
+      expected: false,
+    },
+    { name: "rejects a trailing hyphen", value: "PANADERIA-", expected: false },
+    { name: "rejects accents", value: "PANADERÍA-001", expected: false },
+    { name: "rejects a blank value", value: "", expected: false },
+  ])("$name", ({ value, expected }) => {
+    expect(isValidSku(value)).toBe(expected);
+  });
+
+  it("stops at the first hyphen separated group boundary", () => {
+    expect(SKU_PATTERN.test("A-1")).toBe(true);
+    expect(SKU_PATTERN.test("A/1")).toBe(false);
+  });
+});
+
 describe("toValidationCode", () => {
   it.each(Object.values(ValidationCode))(
     "maps the known code %s back to itself",
@@ -137,8 +227,13 @@ describe("toValidationCode", () => {
       Email: "email",
       Price: "price",
       Url: "url",
+      MainImage: "main-image",
       Category: "category",
+      Folder: "folder",
       Duplicate: "duplicate",
+      DuplicateCategory: "duplicate-category",
+      Sku: "sku",
+      DuplicateSku: "duplicate-sku",
     });
   });
 });

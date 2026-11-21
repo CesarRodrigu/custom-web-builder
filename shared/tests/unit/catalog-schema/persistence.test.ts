@@ -11,6 +11,26 @@ const storedSite = {
   contactEmail: "hola@dulcehogar.example",
 };
 
+const completeDraft = {
+  site: storedSite,
+  folders: [],
+  categories: [],
+  products: [
+    {
+      id: 1,
+      sku: "PANADERIA-BAGUETTE-001",
+      skuAuto: false,
+      name: "Baguette",
+      categories: ["Panes"],
+      folder: "",
+      shortDescription: "Miga ligera.",
+      price: 2.4,
+      mainImage: "/images/baguette.svg",
+      images: ["/images/baguette.svg"],
+    },
+  ],
+};
+
 describe("DRAFT_STORAGE_KEY", () => {
   it("uses the key of the editor draft", () => {
     expect(DRAFT_STORAGE_KEY).toBe("custom-web-builder:draft");
@@ -18,56 +38,30 @@ describe("DRAFT_STORAGE_KEY", () => {
 });
 
 describe("storedDraftSchema", () => {
-  it("reads back a draft whose products still have ids", () => {
-    const draft = {
-      site: storedSite,
-      products: [
-        {
-          id: 1,
-          name: "Baguette",
-          categories: ["Panes"],
-          description: "Miga ligera.",
-          price: 2.4,
-          imageUrl: "https://example.com/baguette.svg",
-        },
-      ],
-    };
-
-    const result = storedDraftSchema.safeParse(draft);
+  it("reads back a complete draft", () => {
+    const result = storedDraftSchema.safeParse(completeDraft);
 
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data).toEqual(draft);
-    }
-  });
-
-  it("reads back an old draft whose products have no ids", () => {
-    const draft = {
-      site: storedSite,
-      products: [
-        {
-          name: "Baguette",
-          categories: ["Panes"],
-          description: "",
-          price: -1,
-          imageUrl: "",
-        },
-      ],
-    };
-
-    expect(storedDraftSchema.safeParse(draft).success).toBe(true);
+    if (result.success) expect(result.data).toEqual(completeDraft);
   });
 
   it("keeps an unfinished draft without applying the editing rules", () => {
     const draft = {
       site: { name: "", description: "", contactEmail: "not-an-email" },
+      folders: ["Dulces//Tartas"],
+      categories: [{ id: 1, name: "", description: "" }],
       products: [
         {
+          id: 1,
+          sku: "not a sku",
+          skuAuto: true,
           name: "",
           categories: ["Panes/Bollería"],
-          description: "",
+          folder: "Dulces",
+          shortDescription: "",
           price: -1,
-          imageUrl: "ftp://example.com/baguette.svg",
+          mainImage: "ftp://example.com/baguette.svg",
+          images: ["ftp://example.com/baguette.svg"],
         },
       ],
     };
@@ -75,20 +69,47 @@ describe("storedDraftSchema", () => {
     const result = storedDraftSchema.safeParse(draft);
 
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data).toEqual(draft);
+    if (result.success) expect(result.data).toEqual(draft);
+  });
+
+  it("drops unknown fields", () => {
+    const result = storedDraftSchema.safeParse({
+      ...completeDraft,
+      description: "legacy alias",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toEqual(completeDraft);
+  });
+
+  it.each([
+    { name: "a product without an id", field: "id" },
+    { name: "a product without a SKU", field: "sku" },
+    { name: "a product without a main image", field: "mainImage" },
+    { name: "a product without a gallery", field: "images" },
+    { name: "a draft without categories", field: "categories" },
+    { name: "a draft without folders", field: "folders" },
+  ])("accepts $name", ({ field }) => {
+    const draft = JSON.parse(JSON.stringify(completeDraft)) as Record<
+      string,
+      unknown
+    >;
+    if (field === "categories" || field === "folders") {
+      delete draft[field];
+    } else {
+      const products = draft.products as Record<string, unknown>[];
+      delete products[0]?.[field];
     }
+
+    expect(storedDraftSchema.safeParse(draft).success).toBe(true);
   });
 
-  it("rejects a stored document whose site metadata is structurally wrong", () => {
+  it("rejects a field whose type does not match the shape", () => {
     expect(
-      storedDraftSchema.safeParse({ site: { name: 42 }, products: [] }).success,
-    ).toBe(false);
-  });
-
-  it("rejects a stored document whose products are not an array", () => {
-    expect(
-      storedDraftSchema.safeParse({ site: storedSite, products: {} }).success,
+      storedDraftSchema.safeParse({
+        site: { name: 42 },
+        products: [],
+      }).success,
     ).toBe(false);
   });
 });

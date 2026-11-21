@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { SiteTextField, siteMetaSchema } from "@/catalog-schema/site";
+import {
+  SiteTextField,
+  siteMetaSchema,
+  siteMetaShape,
+} from "@/catalog-schema/site";
 import { ValidationCode } from "@/catalog-schema/validation";
 
 const completeSite = {
@@ -10,13 +14,13 @@ const completeSite = {
 };
 
 describe("siteMetaSchema", () => {
-  it("accepts a site with only the required name", () => {
-    expect(siteMetaSchema.parse({ name: "Dulce Hogar" })).toEqual({
-      name: "Dulce Hogar",
-    });
+  it("requires the description and contact email fields", () => {
+    expect(siteMetaSchema.safeParse({ name: "Dulce Hogar" }).success).toBe(
+      false,
+    );
   });
 
-  it("keeps the optional metadata when the export provides it", () => {
+  it("keeps the metadata when the export provides it", () => {
     expect(siteMetaSchema.parse(completeSite)).toEqual(completeSite);
   });
 
@@ -26,10 +30,21 @@ describe("siteMetaSchema", () => {
     );
   });
 
-  it("accepts blank optional fields while editing", () => {
+  it("accepts blank description and contact email fields", () => {
     const draft = { name: "Dulce Hogar", description: "", contactEmail: "" };
 
     expect(siteMetaSchema.safeParse(draft).success).toBe(true);
+  });
+
+  it("keeps the rule-free shape permissive while the full schema validates", () => {
+    const invalid = {
+      name: "   ",
+      description: "",
+      contactEmail: "not-an-email",
+    };
+
+    expect(siteMetaShape.safeParse(invalid).success).toBe(true);
+    expect(siteMetaSchema.safeParse(invalid).success).toBe(false);
   });
 
   it("accepts a valid contact email with surrounding whitespace", () => {
