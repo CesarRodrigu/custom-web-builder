@@ -1,77 +1,179 @@
 import { productsPageSize } from "@/config/catalog";
 import type { CatalogProduct } from "@/lib/catalog";
+import type { CatalogCategory } from "@/lib/category";
 import {
+  getCategoryProducts,
   getCategoryStaticPaths,
+  getProductCategories,
   getProductStaticPaths,
   getProductsPageStaticPaths,
-  loadCatalog,
+  loadCategories,
+  loadProducts,
 } from "@/lib/content";
+import type { ParsedProduct } from "@custom-web-builder/shared/catalog-schema";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ getCollection: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getCollection: vi.fn(),
+  getEntries: vi.fn(),
+}));
 
 vi.mock("astro:content", () => mocks);
 
-const productEntries = [
+const baguette: ParsedProduct = {
+  sku: "DULCE-HOGAR-BAGUETTE-001",
+  name: "Baguette",
+  price: 2.4,
+  categories: ["Panes"],
+  shortDescription: "Miga ligera.",
+  mainImage: "/images/products/baguette.svg",
+  images: ["/images/products/baguette.svg"],
+};
+
+const tart: ParsedProduct = {
+  sku: "DULCE-HOGAR-TARTA-001",
+  name: "Tarta de manzana",
+  price: 18.5,
+  categories: [],
+  shortDescription: "Manzana caramelizada.",
+  mainImage: "",
+  images: [],
+};
+
+const products: CatalogProduct[] = [
   {
+    ...baguette,
     id: "panes/baguette",
-    data: { name: "Baguette", price: 2.4, categories: ["Panes"] },
+    categoryNames: ["Panes"],
+    linkedCategories: [{ id: "panes", name: "Panes" }],
   },
   {
+    ...tart,
     id: "pasteles/tarta-de-manzana",
-    data: { name: "Tarta de manzana", price: 18.5, categories: ["Pasteles"] },
+    categoryNames: [],
+    linkedCategories: [],
   },
 ];
 
-const categoryEntries = [
+const categories: CatalogCategory[] = [
+  {
+    id: "panes",
+    name: "Panes",
+    products: [{ ...baguette, id: "panes/baguette", categoryNames: ["Panes"] }],
+  },
+];
+
+const collectionProductEntries = [
+  {
+    id: "panes/baguette",
+    data: {
+      ...baguette,
+      categories: [{ collection: "categories", id: "panes" }],
+    },
+  },
+  { id: "pasteles/tarta-de-manzana", data: { ...tart, categories: [] } },
+];
+
+const collectionCategoryEntries = [
   {
     id: "panes",
     data: {
+      id: "panes",
       name: "Panes",
       products: [{ collection: "products", id: "panes/baguette" }],
     },
   },
 ];
 
+const categoryNames: Record<string, string> = {
+  panes: "Panes",
+  pasteles: "Pasteles",
+};
+
 beforeEach(() => {
   mocks.getCollection.mockImplementation((name: string) =>
-    Promise.resolve(name === "products" ? productEntries : categoryEntries),
+    Promise.resolve(
+      name === "products"
+        ? collectionProductEntries
+        : collectionCategoryEntries,
+    ),
+  );
+  mocks.getEntries.mockImplementation(
+    (references: Array<{ collection: string; id: string }>) =>
+      Promise.resolve(
+        references.map((reference) =>
+          reference.collection === "categories"
+            ? {
+                id: reference.id,
+                data: { name: categoryNames[reference.id] ?? reference.id },
+              }
+            : {
+                id: reference.id,
+                data: {
+                  ...baguette,
+                  categories: [{ collection: "categories", id: "panes" }],
+                },
+              },
+        ),
+      ),
   );
 });
 
-describe("loadCatalog", () => {
-  it("reads products and categories from the exported collections", async () => {
-    const catalog = await loadCatalog();
+describe("loadProducts", () => {
+  it("reads products with their category names", async () => {
+    expect(await loadProducts()).toEqual(products);
+    expect(mocks.getCollection).toHaveBeenCalledWith("products");
+  });
+});
 
-    expect(catalog.products.map((product) => product.name)).toEqual([
-      "Baguette",
-      "Tarta de manzana",
-    ]);
-    expect(catalog.categories.map((category) => category.name)).toEqual([
-      "Panes",
-    ]);
+describe("loadCategories", () => {
+  it("reads categories with their referenced products", async () => {
+    expect(await loadCategories()).toEqual(categories);
+    expect(mocks.getCollection).toHaveBeenCalledWith("categories");
   });
 
-  it("adds the collection id to every loaded product", async () => {
-    const catalog = await loadCatalog();
+  it("skips references that do not resolve", async () => {
+    mocks.getEntries.mockResolvedValueOnce([undefined]);
 
-    expect(catalog.products[0]?.id).toBe("panes/baguette");
-    expect(catalog.categories[0]?.id).toBe("panes");
-  });
-
-  it("attaches category memberships to the products", async () => {
-    const catalog = await loadCatalog();
-
-    expect(catalog.products[0]?.categoryNames).toEqual(["Panes"]);
-    expect(catalog.products[1]?.categoryNames).toBeUndefined();
-  });
-
-  it("enriches the category products with the merged catalog entries", async () => {
-    const catalog = await loadCatalog();
-
-    expect(catalog.categories[0]?.products[0]?.categoryNames).toEqual([
-      "Panes",
+    expect(await loadCategories()).toEqual([
+      { id: "panes", name: "Panes", products: [] },
     ]);
+  });
+});
+
+describe("getProductCategories", () => {
+  it("returns the categories referenced by a product", async () => {
+    const referenced = await getProductCategories(
+      collectionProductEntries[0] as never,
+    );
+
+    expect(referenced.map((category) => category.data.name)).toEqual(["Panes"]);
+  });
+
+  it("skips references that do not resolve", async () => {
+    mocks.getEntries.mockResolvedValueOnce([undefined]);
+
+    expect(
+      await getProductCategories(collectionProductEntries[0] as never),
+    ).toEqual([]);
+  });
+});
+
+describe("getCategoryProducts", () => {
+  it("returns the products referenced by a category", async () => {
+    const products = await getCategoryProducts(
+      collectionCategoryEntries[0] as never,
+    );
+
+    expect(products.map((product) => product.id)).toEqual(["panes/baguette"]);
+  });
+
+  it("skips references that do not resolve", async () => {
+    mocks.getEntries.mockResolvedValueOnce([undefined]);
+
+    expect(
+      await getCategoryProducts(collectionCategoryEntries[0] as never),
+    ).toEqual([]);
   });
 });
 
@@ -112,7 +214,7 @@ describe("getProductsPageStaticPaths", () => {
     const paths = (await getProductsPageStaticPaths(
       "es",
       paginate as never,
-    )) as Array<{
+    )) as unknown as Array<{
       props: { products: CatalogProduct[]; pageSize: number };
     }>;
 

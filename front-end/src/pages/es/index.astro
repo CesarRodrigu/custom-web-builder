@@ -2,7 +2,7 @@
 import Home, { type HomeTexts } from "@/components/Home.astro";
 import { site } from "@/config/site-content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { loadCatalog } from "@/lib/content";
+import { loadProducts } from "@/lib/content";
 
 const texts: HomeTexts = {
   pageTitle: "Página de inicio",
@@ -22,7 +22,7 @@ const texts: HomeTexts = {
   footerRights: "Todos los derechos reservados.",
 };
 
-const { products } = await loadCatalog();
+const products = await loadProducts();
 ---
 
 <BaseLayout

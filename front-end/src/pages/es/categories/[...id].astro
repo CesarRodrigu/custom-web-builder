@@ -2,6 +2,7 @@
 import Category, { type CategoryTexts } from "@/components/Category.astro";
 import { site } from "@/config/site-content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import type { CatalogCategory } from "@/lib/category";
 import { getCategoryStaticPaths } from "@/lib/content";
 
 const texts: CategoryTexts = {
@@ -19,6 +20,10 @@ const texts: CategoryTexts = {
 };
 
 export const getStaticPaths = getCategoryStaticPaths;
+
+interface Props {
+  category: CatalogCategory;
+}
 
 const { category } = Astro.props;
 ---

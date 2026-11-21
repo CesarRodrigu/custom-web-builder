@@ -8,7 +8,6 @@ const pages = [
     price: /2,40/,
     category: "Panes",
     backToProducts: "Volver a productos",
-    contactCta: "Consultar disponibilidad",
     shortDescription: "Miga ligera y corteza fina, recién horneada.",
     longDescription: /Elaborada con masa de fermentación lenta/,
     stockLabel: "Stock",
@@ -20,7 +19,6 @@ const pages = [
     price: /2\.40/,
     category: "Panes",
     backToProducts: "Back to products",
-    contactCta: "Ask about availability",
     shortDescription: "Miga ligera y corteza fina, recién horneada.",
     longDescription: /Elaborada con masa de fermentación lenta/,
     stockLabel: "In stock",
@@ -34,7 +32,6 @@ for (const {
   price,
   category,
   backToProducts,
-  contactCta,
   shortDescription,
   longDescription,
   stockLabel,
@@ -48,7 +45,6 @@ for (const {
       ).toBeVisible();
       await expect(page.getByText(category).first()).toBeVisible();
       await expect(page.getByText(price)).toBeVisible();
-      await expect(page.getByRole("link", { name: contactCta })).toBeVisible();
       await expect(
         page.getByRole("link", { name: new RegExp(backToProducts) }),
       ).toHaveAttribute("href", `/${locale}/products/`);

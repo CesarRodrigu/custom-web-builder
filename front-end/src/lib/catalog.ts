@@ -11,12 +11,22 @@ import {
   type ParsedProduct,
 } from "@custom-web-builder/shared/catalog-schema";
 
+/** Category link shown on a product page. */
+export interface ProductCategoryLink {
+  /** Entry id of the category, used to build its URL. */
+  id: string;
+  /** Display name of the category. */
+  name: string;
+}
+
 /** Product ready to render, with the collection entry id added to the exported document. */
 export type CatalogProduct = ParsedProduct & {
   /** Entry id relative to the products collection. */
   id: string;
   /** Category names that reference the product, when the categories collection provides them. */
   categoryNames?: string[];
+  /** Categories that reference the product, resolved from its references. */
+  linkedCategories?: ProductCategoryLink[];
 };
 
 /**
@@ -46,66 +56,26 @@ export function toCatalogProduct(
   return {
     ...document,
     id,
-    shortDescription: document.shortDescription ?? document.description,
   };
 }
 
 /**
- * Returns the image list a product should render, in gallery order.
+ * Returns the image list a product should render, main image first.
  *
- * The generator can export a single `imageUrl` for older packages or an
- * `images` array for ecommerce galleries; the single image is used as a
- * one-item gallery when the array is missing or empty.
- * @param product Product document with either the single image or the array.
- * @returns Non-empty image URLs without duplicates; empty when the product has no artwork.
+ * The main image is always one of the gallery references, so the gallery is
+ * deduplicated and the main image is moved to the front.
+ * @param product Product document with its main image and gallery.
+ * @returns Non-empty image URLs without duplicates, main image first.
  */
 export function getProductImages(
-  product: Pick<ParsedProduct, "imageUrl" | "images">,
+  product: Pick<ParsedProduct, "mainImage" | "images">,
 ): string[] {
-  const images = (product.images ?? [])
-    .map((image) => image.trim())
-    .filter(Boolean);
-
-  if (images.length > 0) {
-    return [...new Set(images)];
-  }
-
-  return product.imageUrl ? [product.imageUrl] : [];
-}
-
-/**
- * Collapses repeated documents of the same product into one, keeping every
- * category name once.
- *
- * The generator writes one file per product now, so this is a safety net for
- * packages exported before that change, which repeated the document inside
- * each category folder.
- * @param products Products read from the collection, possibly repeated.
- * @returns One product per unique name, in first-seen order.
- */
-export function mergeCatalogProducts(
-  products: readonly CatalogProduct[],
-): CatalogProduct[] {
-  const byName = new Map<string, CatalogProduct>();
-
-  for (const product of products) {
-    const existing = byName.get(product.name);
-    if (!existing) {
-      byName.set(product.name, {
-        ...product,
-        categories: [...new Set(product.categories)],
-      });
-      continue;
-    }
-
-    for (const category of product.categories) {
-      if (!existing.categories.includes(category)) {
-        existing.categories.push(category);
-      }
-    }
-  }
-
-  return [...byName.values()];
+  const gallery = [
+    ...new Set(product.images.map((image) => image.trim()).filter(Boolean)),
+  ];
+  const main = product.mainImage.trim();
+  if (main === "") return gallery;
+  return [main, ...gallery.filter((image) => image !== main)];
 }
 
 /**

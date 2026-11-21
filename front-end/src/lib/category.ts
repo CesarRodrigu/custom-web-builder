@@ -10,13 +10,13 @@ import type {
   ProductReference,
 } from "@custom-web-builder/shared/catalog-schema";
 
-/** Category document once the collection has resolved its product references. */
+/** Category document with its product references ready to be resolved. */
 export interface ResolvedCategoryDocument extends Omit<
   CategoryDocument,
   "products"
 > {
   /** Products that belong to the category, in display order. */
-  products: ProductReference[];
+  products: ReadonlyArray<ProductReference | string>;
 }
 
 /** Category ready to render, with the products its document references. */
@@ -37,7 +37,9 @@ export interface CatalogCategory {
  * References to products missing from the export are dropped instead of
  * failing the build, so one stale reference does not hide the whole category.
  * A product with several category files appears once: the first reference wins
- * and the rest are treated as the same product.
+ * and the rest are treated as the same product. References may be Astro
+ * reference objects or plain entry ids, so build-time and live sources share
+ * this resolver.
  * @param id Entry id relative to the categories collection.
  * @param document Validated category document.
  * @param productsById Exported products indexed by their entry id.
@@ -53,7 +55,9 @@ export function toCatalogCategory(
     id,
     name: document.name,
     products: document.products.flatMap((reference) => {
-      const product = productsById.get(reference.id);
+      const productId =
+        typeof reference === "string" ? reference : reference.id;
+      const product = productsById.get(productId);
 
       if (!product || listedProducts.has(product.name)) {
         return [];
@@ -69,58 +73,6 @@ export function toCatalogCategory(
   }
 
   return category;
-}
-
-/**
- * Adds the category names that reference each product to the merged catalog.
- *
- * Category membership lives in the categories collection, so a product can
- * belong to any number of categories regardless of its folder chain. Products
- * without an explicit category keep only their path-derived categories.
- * @param products Merged products of the catalog.
- * @param categories Categories with their references already resolved.
- * @returns New products carrying their category names; the input is not mutated.
- */
-export function withCategoryMemberships(
-  products: readonly CatalogProduct[],
-  categories: readonly CatalogCategory[],
-): CatalogProduct[] {
-  return products.map((product) => {
-    const categoryNames = categories
-      .filter((category) =>
-        category.products.some((candidate) => candidate.name === product.name),
-      )
-      .map((category) => category.name);
-
-    return categoryNames.length === 0 ? product : { ...product, categoryNames };
-  });
-}
-
-/**
- * Replaces the products of each category with their catalog counterpart.
- *
- * Category pages render the products resolved from the category document, but
- * those instances do not know every category that references them. Swapping
- * them for the merged products of the catalog lets each card show all of its
- * category badges.
- * @param categories Categories whose product lists are rewritten.
- * @param products Merged products carrying their category memberships.
- * @returns New categories with the enriched products; neither input is mutated.
- */
-export function withEnrichedCategoryProducts(
-  categories: readonly CatalogCategory[],
-  products: readonly CatalogProduct[],
-): CatalogCategory[] {
-  const productsByName = new Map(
-    products.map((product) => [product.name, product]),
-  );
-
-  return categories.map((category) => ({
-    ...category,
-    products: category.products.map(
-      (product) => productsByName.get(product.name) ?? product,
-    ),
-  }));
 }
 
 /**
@@ -152,23 +104,4 @@ export function getCategoryCoverImage(
   return category.products
     .map((product) => getProductImages(product)[0])
     .find((image): image is string => image !== undefined);
-}
-
-/**
- * Finds the categories a product belongs to.
- *
- * Products are identified by name because the generator writes the same
- * product once per category folder and `mergeCatalogProducts` collapses those
- * duplicates by name.
- * @param categories Categories read from the collection.
- * @param product Product to look up.
- * @returns Categories whose references include the product, in collection order.
- */
-export function findProductCategories(
-  categories: readonly CatalogCategory[],
-  product: CatalogProduct,
-): CatalogCategory[] {
-  return categories.filter((category) =>
-    category.products.some((candidate) => candidate.name === product.name),
-  );
 }

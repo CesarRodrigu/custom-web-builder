@@ -4,6 +4,7 @@ import ProductDetail, {
 } from "@/components/ProductDetail.astro";
 import { site } from "@/config/site-content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import type { CatalogProduct, ProductCategoryLink } from "@/lib/catalog";
 import { getProductStaticPaths } from "@/lib/content";
 
 const texts: ProductDetailTexts = {
@@ -11,7 +12,6 @@ const texts: ProductDetailTexts = {
   navProducts: "Productos",
   navCategories: "Categorías",
   backToProducts: "Volver a productos",
-  contactCta: "Consultar disponibilidad",
   categoryLabel: "Categoría",
   statusRecommended: "Recomendado",
   statusNotForSale: "No en venta",
@@ -21,6 +21,11 @@ const texts: ProductDetailTexts = {
 };
 
 export const getStaticPaths = getProductStaticPaths;
+
+interface Props {
+  product: CatalogProduct;
+  categories: ProductCategoryLink[];
+}
 
 const { product, categories } = Astro.props;
 ---
@@ -35,7 +40,6 @@ const { product, categories } = Astro.props;
   <ProductDetail
     texts={texts}
     product={product}
-    site={site}
     categories={categories}
   />
 </BaseLayout>

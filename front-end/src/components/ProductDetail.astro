@@ -10,9 +10,8 @@ import {
   formatPrice,
   getProductImages,
   type CatalogProduct,
+  type ProductCategoryLink,
 } from "@/lib/catalog";
-import type { SiteMeta } from "@custom-web-builder/shared/catalog-schema";
-import type { CatalogCategory } from "@/lib/category";
 import { getRelativeLocaleUrl } from "astro:i18n";
 
 /**
@@ -25,8 +24,6 @@ import { getRelativeLocaleUrl } from "astro:i18n";
 export interface ProductDetailTexts extends SiteLayoutTexts, ProductTexts {
   /** Link back to the full products page. */
   backToProducts: string;
-  /** Label of the button that opens the contact email. */
-  contactCta: string;
   /** Label shown above the category badges. */
   categoryLabel: string;
 }
@@ -36,13 +33,11 @@ interface Props {
   texts: ProductDetailTexts;
   /** Product exported by the generator. */
   product: CatalogProduct;
-  /** Metadata exported by the generator. */
-  site: SiteMeta;
   /** Categories that reference the product, in collection order. */
-  categories: CatalogCategory[];
+  categories: ProductCategoryLink[];
 }
 
-const { texts, product, site, categories } = Astro.props;
+const { texts, product, categories } = Astro.props;
 const locale = Astro.currentLocale ?? defaultLocale;
 const homeHref = getRelativeLocaleUrl(locale, "/");
 const productsHref = getRelativeLocaleUrl(locale, "/products");
@@ -111,14 +106,6 @@ const breadcrumbItems = [
         )}
 
         <div class="flex flex-wrap gap-3">
-          {site.contactEmail && (
-            <a
-              class={buttonVariants({ size: "lg" })}
-              href={`mailto:${site.contactEmail}`}
-            >
-              {texts.contactCta}
-            </a>
-          )}
           <a
             class={buttonVariants({ variant: "outline", size: "lg" })}
             href={productsHref}

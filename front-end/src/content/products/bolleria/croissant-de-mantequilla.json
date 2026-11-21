@@ -1,9 +1,11 @@
 {
+  "sku": "DULCE-HOGAR-CROISSANT-001",
   "name": "Croissant de mantequilla",
   "price": 2.8,
   "categories": ["Bollería"],
   "shortDescription": "Hojaldre de mantequilla con 27 capas.",
   "longDescription": "Laminado a mano con mantequilla de calidad y fermentado durante la noche. Al hornearlo se abren sus 27 capas y queda crujiente por fuera y tierno por dentro.",
   "stock": 30,
-  "imageUrl": "/images/products/croissant-de-mantequilla.svg"
+  "mainImage": "/images/products/croissant-de-mantequilla.svg",
+  "images": ["/images/products/croissant-de-mantequilla.svg"]
 }

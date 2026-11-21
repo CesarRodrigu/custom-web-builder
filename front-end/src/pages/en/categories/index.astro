@@ -4,7 +4,7 @@ import Categories, {
 } from "@/components/Categories.astro";
 import { site } from "@/config/site-content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { loadCatalog } from "@/lib/content";
+import { loadCategories } from "@/lib/content";
 
 const texts: CategoriesTexts = {
   pageTitle: "Categories",
@@ -21,7 +21,7 @@ const texts: CategoriesTexts = {
   footerRights: "All rights reserved.",
 };
 
-const { categories } = await loadCatalog();
+const categories = await loadCategories();
 ---
 
 <BaseLayout

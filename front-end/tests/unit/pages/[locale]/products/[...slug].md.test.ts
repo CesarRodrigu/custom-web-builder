@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCollection: vi.fn(),
+  getEntries: vi.fn(),
   getEntry: vi.fn(),
 }));
 
@@ -46,6 +47,15 @@ beforeEach(() => {
   mocks.getCollection.mockResolvedValue(productEntries);
   mocks.getEntry.mockImplementation((_collection: string, id: string) =>
     Promise.resolve(entriesById.get(id)),
+  );
+  mocks.getEntries.mockImplementation(
+    (references: Array<string | { id: string }>) =>
+      Promise.resolve(
+        references.map((reference) => {
+          const name = typeof reference === "string" ? reference : reference.id;
+          return { id: name, data: { name } };
+        }),
+      ),
   );
 });
 

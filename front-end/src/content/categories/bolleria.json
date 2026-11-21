@@ -1,4 +1,5 @@
 {
+  "id": "bolleria",
   "name": "Bollería",
   "description": "Hojaldres y piezas de desayuno recién horneadas.",
   "products": ["bolleria/croissant-de-mantequilla"]

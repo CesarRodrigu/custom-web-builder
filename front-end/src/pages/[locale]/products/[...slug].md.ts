@@ -1,5 +1,5 @@
 import type { APIRoute, GetStaticPathsResult } from "astro";
-import { getCollection, getEntry } from "astro:content";
+import { getCollection, getEntries, getEntry } from "astro:content";
 import { locales } from "@/config/site";
 
 /**
@@ -86,9 +86,20 @@ function objectToMarkdown(
 export const GET: APIRoute = async (context) => {
   const { post } = context.props;
   const entry = await getEntry("products", post.id);
+  if (!entry) {
+    return new Response("Product not found", { status: 404 });
+  }
+
+  const referenced = await getEntries(entry.data.categories);
+  const data = {
+    ...entry.data,
+    categories: referenced
+      .map((category) => category?.data.name)
+      .filter((name): name is string => Boolean(name)),
+  };
 
   return new Response(
-    `---\n${objectToMarkdown(entry.data, { headingLevel: 2 })}\n---`,
+    `---\n${objectToMarkdown(data, { headingLevel: 2 })}\n---`,
     {
       headers: {
         "Content-Type": "text/markdown; charset=utf-8",

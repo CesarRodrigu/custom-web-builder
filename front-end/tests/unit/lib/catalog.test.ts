@@ -1,7 +1,6 @@
 import {
   formatPrice,
   getProductImages,
-  mergeCatalogProducts,
   sortProductsForDisplay,
   toCatalogProduct,
   toCategoryLabel,
@@ -9,6 +8,9 @@ import {
 } from "@/lib/catalog";
 import { ProductStatus } from "@custom-web-builder/shared/catalog-schema";
 import { describe, expect, it } from "vitest";
+
+/** Short description carried by every parsed product document. */
+const shortDescription = "Descripción breve";
 
 describe("toCategoryLabel", () => {
   it.each([
@@ -35,6 +37,7 @@ describe("toCategoryLabel", () => {
 describe("toCatalogProduct", () => {
   it("adds the collection id to the document and keeps its categories", () => {
     const document = {
+      sku: "SKU-ITEM-001",
       name: "Tarta de manzana",
       price: 18.5,
       categories: ["Pasteles"],
@@ -42,7 +45,8 @@ describe("toCatalogProduct", () => {
       longDescription: "Manzana laminada sobre hojaldre crujiente.",
       stock: 4,
       status: ProductStatus.Recommended,
-      imageUrl: "/images/products/tarta-de-manzana.svg",
+      mainImage: "/images/products/tarta-de-manzana.svg",
+      images: ["/images/products/tarta-de-manzana.svg"],
     };
 
     expect(toCatalogProduct("p/tarta-de-manzana", document)).toEqual({
@@ -54,20 +58,29 @@ describe("toCatalogProduct", () => {
   it("keeps the document categories even when the file sits in a subfolder", () => {
     expect(
       toCatalogProduct("p/empanada-gallega", {
+        sku: "SKU-ITEM-001",
         name: "Empanada gallega",
         price: 3.2,
         categories: ["Salados", "Galicia"],
+        shortDescription,
+        mainImage: "",
+        images: [],
       }),
     ).toEqual({
       id: "p/empanada-gallega",
+      sku: "SKU-ITEM-001",
       name: "Empanada gallega",
       price: 3.2,
       categories: ["Salados", "Galicia"],
+      shortDescription,
+      mainImage: "",
+      images: [],
     });
   });
 
   it("assigns every field read from the collection document", () => {
     const product = toCatalogProduct("b/baguette", {
+      sku: "SKU-ITEM-001",
       name: "Baguette",
       price: 2.4,
       categories: ["Panes"],
@@ -75,6 +88,8 @@ describe("toCatalogProduct", () => {
       longDescription: "Corteza crujiente y miga aireada.",
       stock: 24,
       status: ProductStatus.Recommended,
+      mainImage: "",
+      images: [],
     });
 
     expect(product).toMatchObject({
@@ -87,72 +102,38 @@ describe("toCatalogProduct", () => {
   });
 });
 
-describe("mergeCatalogProducts", () => {
-  it("merges repeated documents of a product and keeps every category once", () => {
-    const products: CatalogProduct[] = [
-      {
-        id: "p/tarta-de-manzana",
-        name: "Tarta de manzana",
-        price: 18.5,
-        categories: ["Pasteles"],
-      },
-      {
-        id: "o/tarta-de-manzana",
-        name: "Tarta de manzana",
-        price: 18.5,
-        categories: ["Postres", "Pasteles"],
-      },
-      {
-        id: "b/baguette",
-        name: "Baguette",
-        price: 2.4,
-        categories: ["Panes"],
-      },
-    ];
-
-    expect(mergeCatalogProducts(products)).toEqual([
-      {
-        id: "p/tarta-de-manzana",
-        name: "Tarta de manzana",
-        price: 18.5,
-        categories: ["Pasteles", "Postres"],
-      },
-      {
-        id: "b/baguette",
-        name: "Baguette",
-        price: 2.4,
-        categories: ["Panes"],
-      },
-    ]);
-  });
-
-  it("does not mutate the categories of the input products", () => {
-    const products: CatalogProduct[] = [
-      {
-        id: "p/tarta-de-manzana",
-        name: "Tarta de manzana",
-        price: 18.5,
-        categories: ["Pasteles"],
-      },
-      {
-        id: "o/tarta-de-manzana",
-        name: "Tarta de manzana",
-        price: 18.5,
-        categories: ["Postres"],
-      },
-    ];
-
-    mergeCatalogProducts(products);
-
-    expect(products[0]?.categories).toEqual(["Pasteles"]);
-  });
-});
-
 describe("sortProductsForDisplay", () => {
   const products: CatalogProduct[] = [
-    { id: "tarta", name: "Tarta de manzana", price: 18.5, categories: [] },
-    { id: "baguette", name: "Baguette", price: 2.4, categories: [] },
-    { id: "croissant", name: "Croissant", price: 2.8, categories: [] },
+    {
+      id: "tarta",
+      sku: "SKU-ITEM-001",
+      name: "Tarta de manzana",
+      price: 18.5,
+      categories: [],
+      shortDescription,
+      mainImage: "",
+      images: [],
+    },
+    {
+      id: "baguette",
+      sku: "SKU-ITEM-001",
+      name: "Baguette",
+      price: 2.4,
+      categories: [],
+      shortDescription,
+      mainImage: "",
+      images: [],
+    },
+    {
+      id: "croissant",
+      sku: "SKU-ITEM-001",
+      name: "Croissant",
+      price: 2.8,
+      categories: [],
+      shortDescription,
+      mainImage: "",
+      images: [],
+    },
   ];
 
   it("sorts the products by display name", () => {
@@ -209,22 +190,25 @@ describe("formatPrice", () => {
 });
 
 describe("getProductImages", () => {
-  it("returns the images array in gallery order without duplicates", () => {
+  it("returns the gallery in order without duplicates", () => {
     expect(
       getProductImages({
-        imageUrl: "/images/cover.svg",
+        mainImage: "",
         images: ["/images/one.svg", "/images/two.svg", "/images/one.svg"],
       }),
     ).toEqual(["/images/one.svg", "/images/two.svg"]);
   });
 
-  it("falls back to the single image when the array is empty", () => {
+  it("puts the main image first", () => {
     expect(
-      getProductImages({ imageUrl: "/images/cover.svg", images: [] }),
-    ).toEqual(["/images/cover.svg"]);
+      getProductImages({
+        mainImage: "/images/two.svg",
+        images: ["/images/one.svg", "/images/two.svg"],
+      }),
+    ).toEqual(["/images/two.svg", "/images/one.svg"]);
   });
 
   it("returns no images when the product has no artwork", () => {
-    expect(getProductImages({})).toEqual([]);
+    expect(getProductImages({ mainImage: "", images: [] })).toEqual([]);
   });
 });

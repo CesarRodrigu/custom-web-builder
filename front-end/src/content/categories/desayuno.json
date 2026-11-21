@@ -1,4 +1,5 @@
 {
+  "id": "desayuno",
   "name": "Desayuno",
   "description": "Piezas de bollería y pan para empezar el día.",
   "products": ["panes/baguette", "bolleria/croissant-de-mantequilla"]

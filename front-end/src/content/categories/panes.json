@@ -1,4 +1,5 @@
 {
+  "id": "panes",
   "name": "Panes",
   "description": "Hogazas y barras de fermentación lenta.",
   "products": ["panes/baguette", "panes/pan-de-masa-madre"]

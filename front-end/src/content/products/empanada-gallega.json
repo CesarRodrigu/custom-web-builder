@@ -1,9 +1,11 @@
 {
+  "sku": "DULCE-HOGAR-EMPANADA-GALLEGA-001",
   "name": "Empanada gallega",
   "price": 3.2,
   "categories": ["Salados"],
   "shortDescription": "Relleno de atún, cebolla y pimiento en masa de pan.",
   "longDescription": "Masa de pan tierna con un relleno jugoso de atún, cebolla y pimiento. Se hornea cada mañana y se vende por raciones.",
   "stock": 10,
-  "imageUrl": "/images/products/empanada-gallega.svg"
+  "mainImage": "/images/products/empanada-gallega.svg",
+  "images": ["/images/products/empanada-gallega.svg"]
 }
