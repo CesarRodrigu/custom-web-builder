@@ -37,9 +37,5 @@ const { product, categories } = Astro.props;
   contactEmail={site.contactEmail}
   layout={texts}
 >
-  <ProductDetail
-    texts={texts}
-    product={product}
-    categories={categories}
-  />
+  <ProductDetail texts={texts} product={product} categories={categories} />
 </BaseLayout>

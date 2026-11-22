@@ -1,3 +1,4 @@
+import { defaultLocale, hreflangCodes } from "@/config/site";
 import { siteDescription, siteName } from "@/config/site-content";
 import { GET } from "@/pages/rss.xml";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,31 +37,32 @@ beforeEach(() => {
 
 describe("GET", () => {
   it("builds the feed with the site metadata and one item per product", async () => {
-    const feed = await GET({ site: new URL("https://example.com") } as never);
+    const site = new URL("https://example.com");
+    const feed = await GET({ site } as never);
 
     expect(feed).toEqual({
       title: siteName,
       description: siteDescription,
-      site: new URL("https://example.com"),
+      site,
       items: [
         {
           title: "Baguette",
           description: "Fermentación lenta de masa madre.",
-          link: "src/content/products/panes/baguette.json",
+          link: `/${defaultLocale}/products/panes/baguette`,
         },
         {
           title: "Tarta de manzana",
           description: "Manzana caramelizada.",
-          link: "src/content/products/pasteles/tarta-de-manzana.json",
+          link: `/${defaultLocale}/products/pasteles/tarta-de-manzana`,
         },
       ],
-      customData: "<language>en-us</language>",
+      customData: `<language>${hreflangCodes[defaultLocale]}</language>`,
     });
   });
 
-  it("falls back to the site name when the context has no site URL", async () => {
+  it("falls back to a valid URL when the context has no site URL", async () => {
     const feed = await GET({} as never);
 
-    expect(feed).toMatchObject({ site: siteName });
+    expect(feed).toMatchObject({ site: new URL("http://localhost:4321") });
   });
 });

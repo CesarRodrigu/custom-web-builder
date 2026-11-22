@@ -55,12 +55,6 @@ export const siteMetaSchema = siteMetaShape.extend({
 /** Site metadata document the generator exports as `site.json`. */
 export type SiteMeta = z.input<typeof siteMetaSchema>;
 
-/**
- * Site metadata as edited in the form: the same document, always with text
- * fields, including when blank.
- */
-export type SiteMetaDraft = SiteMeta;
-
 /** Text fields of the site metadata that the editor edits with one input each. */
 export const SiteTextField = {
   /** Display name of the generated site. */
@@ -69,7 +63,7 @@ export const SiteTextField = {
   Description: "description",
   /** Contact email shown on the site. */
   ContactEmail: "contactEmail",
-} as const satisfies Record<string, keyof SiteMetaDraft>;
+} as const satisfies Record<string, keyof SiteMeta>;
 
 /** Text field of the site metadata that the editor edits with one input. */
 export type SiteTextField = (typeof SiteTextField)[keyof typeof SiteTextField];

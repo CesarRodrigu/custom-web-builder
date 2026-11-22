@@ -1,7 +1,10 @@
+import { defaultLocale, hreflangCodes } from "@/config/site";
 import { siteDescription, siteName } from "@/config/site-content";
 import rss from "@astrojs/rss";
 import type { APIRoute } from "astro";
 import { getCollection } from "astro:content";
+
+const FALLBACK_SITE_URL = new URL("http://localhost:4321");
 
 /**
  * Serves the RSS feed with every product of the exported catalog.
@@ -11,22 +14,15 @@ import { getCollection } from "astro:content";
 export const GET: APIRoute = async (context) => {
   const products = await getCollection("products");
   return rss({
-    // `<title>` field in output xml
     title: siteName,
-    // `<description>` field in output xml
     description: siteDescription ?? "",
-    // Pull in your project "site" from the endpoint context
-    // https://docs.astro.build/en/reference/api-reference/#site
-    site: context?.site ?? siteName,
-    // Array of `<item>`s in output xml
-    // See "Generating items" section for examples using content collections and glob imports
+    site: context.site ?? FALLBACK_SITE_URL,
     items: products.map((product) => ({
       title: product.data.name,
       description:
         product.data.longDescription ?? product.data.shortDescription,
-      link: product.filePath,
+      link: `/${defaultLocale}/products/${product.id}`,
     })),
-    // (optional) inject custom xml
-    customData: `<language>en-us</language>`,
+    customData: `<language>${hreflangCodes[defaultLocale]}</language>`,
   });
 };

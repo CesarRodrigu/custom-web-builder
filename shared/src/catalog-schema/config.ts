@@ -17,13 +17,13 @@ import {
   productDraftSchema,
   productDraftShape,
 } from "./product";
-import type { SiteMeta, SiteMetaDraft } from "./site";
+import type { SiteMeta } from "./site";
 import { siteMetaSchema, siteMetaShape } from "./site";
 
 /** Raw site configuration as edited in the form, before normalization. */
 export interface SiteConfigDraft {
   /** Site metadata draft. */
-  site: SiteMetaDraft;
+  site: SiteMeta;
   /** User created folder paths below `products/`, including their ancestors. */
   folders: string[];
   /** Products of the catalog, possibly empty while the user adds entries. */
