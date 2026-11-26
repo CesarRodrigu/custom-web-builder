@@ -1,5 +1,6 @@
 {
-  "name": "Dulce Hogar",
-  "description": "Panadería artesanal con masa madre, bollería y postres horneados cada día.",
-  "contactEmail": "hola@dulcehogar.example"
+  "$schema": "schemas/site.schema.json",
+  "name": "Panadería María",
+  "description": "",
+  "contactEmail": "hola@panaderia.com"
 }

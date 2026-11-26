@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/product.schema.json",
+  "sku": "PAN-MASA-MADRE-001",
+  "name": "Pan de masa madre",
+  "price": 3.5,
+  "categories": ["Panes"],
+  "shortDescription": "Pan de fermentación lenta y corteza crujiente.",
+  "stock": 24,
+  "mainImage": "https://placehold.co/800x600/webp?text=Pan+de+masa+madre",
+  "images": ["https://placehold.co/800x600/webp?text=Pan+de+masa+madre"]
+}

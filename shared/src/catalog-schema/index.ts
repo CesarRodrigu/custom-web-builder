@@ -4,6 +4,7 @@
  * vocabulary and the persistence port.
  */
 export * from "./validation";
+export * from "./json-schema";
 export * from "./site";
 export * from "./product";
 export * from "./category";

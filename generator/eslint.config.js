@@ -65,6 +65,10 @@ export default defineConfig(
     languageOptions: { globals: globals.node },
   },
   {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
+  {
     files: ["**/*.{js,mjs,ts,tsx,astro}"],
     rules: {
       "no-restricted-imports": [

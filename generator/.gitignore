@@ -31,3 +31,6 @@ pnpm-debug.log*
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Metadata reconnaissance output
+/metadata-output/

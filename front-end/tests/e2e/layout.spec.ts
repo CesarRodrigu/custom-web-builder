@@ -1,15 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-const SITE_NAME = "Dulce Hogar";
-const SITE_DESCRIPTION =
-  "Panadería artesanal con masa madre, bollería y postres horneados cada día.";
+import { escapeRegExp, site } from "@tests/e2e/content";
 
 const pages = [
   {
     path: "/",
     lang: "es",
-    title: `Página de inicio | ${SITE_NAME}`,
-    description: SITE_DESCRIPTION,
+    title: `Página de inicio | ${site.name}`,
+    description: site.description,
     canonical: "/es/",
     navHome: "Inicio",
     navProducts: "Productos",
@@ -18,8 +16,8 @@ const pages = [
   {
     path: "/es/",
     lang: "es",
-    title: `Página de inicio | ${SITE_NAME}`,
-    description: SITE_DESCRIPTION,
+    title: `Página de inicio | ${site.name}`,
+    description: site.description,
     canonical: "/es/",
     navHome: "Inicio",
     navProducts: "Productos",
@@ -28,8 +26,8 @@ const pages = [
   {
     path: "/en/",
     lang: "en",
-    title: `Home page | ${SITE_NAME}`,
-    description: SITE_DESCRIPTION,
+    title: `Home page | ${site.name}`,
+    description: site.description,
     canonical: "/en/",
     navHome: "Home",
     navProducts: "Products",
@@ -38,7 +36,7 @@ const pages = [
   {
     path: "/es/products/",
     lang: "es",
-    title: `Productos | ${SITE_NAME}`,
+    title: `Productos | ${site.name}`,
     description: "Todos los productos disponibles, organizados por categoría.",
     canonical: "/es/products/page/1/",
     navHome: "Inicio",
@@ -48,7 +46,7 @@ const pages = [
   {
     path: "/en/products/",
     lang: "en",
-    title: `Products | ${SITE_NAME}`,
+    title: `Products | ${site.name}`,
     description: "Every product in the catalog, organized by category.",
     canonical: "/en/products/page/1/",
     navHome: "Home",
@@ -58,7 +56,7 @@ const pages = [
   {
     path: "/es/products/page/1/",
     lang: "es",
-    title: `Productos | ${SITE_NAME}`,
+    title: `Productos | ${site.name}`,
     description: "Todos los productos disponibles, organizados por categoría.",
     canonical: "/es/products/page/1/",
     navHome: "Inicio",
@@ -68,7 +66,7 @@ const pages = [
   {
     path: "/en/products/page/1/",
     lang: "en",
-    title: `Products | ${SITE_NAME}`,
+    title: `Products | ${site.name}`,
     description: "Every product in the catalog, organized by category.",
     canonical: "/en/products/page/1/",
     navHome: "Home",
@@ -102,7 +100,7 @@ for (const {
 
       const header = page.getByRole("banner");
       await expect(
-        header.getByRole("link", { name: SITE_NAME, exact: true }),
+        header.getByRole("link", { name: site.name, exact: true }),
       ).toBeVisible();
 
       const navigation = header.getByRole("navigation");
@@ -115,9 +113,15 @@ for (const {
 
       const footer = page.getByRole("contentinfo");
       await expect(footer).toContainText(footerRights);
-      await expect(
-        footer.getByRole("link", { name: /hola@dulcehogar\.example/ }),
-      ).toBeVisible();
+      if (site.contactEmail) {
+        await expect(
+          footer.getByRole("link", {
+            name: new RegExp(escapeRegExp(site.contactEmail)),
+          }),
+        ).toBeVisible();
+      } else {
+        await expect(footer.locator('a[href^="mailto:"]')).toHaveCount(0);
+      }
     });
 
     test("includes the metadata of the shared head", async ({ page }) => {

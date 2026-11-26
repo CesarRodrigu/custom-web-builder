@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { getExportFormat } from "@/lib/export/formats/format";
+import { exportFormats, getExportFormat } from "@/lib/export/formats/format";
 import {
   buildCategoryDocuments,
   buildSiteFileMap,
+  DOCUMENT_SCHEMA_FILES,
   FOLDERS_FILE,
   SITE_FILE,
   toProductPaths,
@@ -13,6 +14,21 @@ import {
   normalizedProductWith,
   siteConfigWith,
 } from "@tests/unit/helpers/fixtures";
+
+/**
+ * Reads a generated document without its schema reference.
+ * @param files Generated package.
+ * @param path Path of the document.
+ * @returns The document contents without `$schema`.
+ */
+function readDocument(
+  files: Record<string, string>,
+  path: string,
+): Record<string, unknown> {
+  const document = JSON.parse(files[path] ?? "") as Record<string, unknown>;
+  delete document.$schema;
+  return document;
+}
 
 describe("buildSiteFileMap", () => {
   it("writes one site file and one file per product in the products root", () => {
@@ -35,18 +51,19 @@ describe("buildSiteFileMap", () => {
       "products/pan-de-centeno.json",
       "categories/dulces.json",
       "categories/tartas.json",
+      ...Object.values(DOCUMENT_SCHEMA_FILES),
     ]);
-    expect(JSON.parse(files["categories/dulces.json"] ?? "")).toEqual({
+    expect(readDocument(files, "categories/dulces.json")).toEqual({
       id: "dulces",
       name: "Dulces",
       products: ["tarta-de-manzana"],
     });
-    expect(JSON.parse(files[SITE_FILE] ?? "")).toEqual({
+    expect(readDocument(files, SITE_FILE)).toEqual({
       name: "Panadería María",
       description: "",
       contactEmail: "",
     });
-    expect(JSON.parse(files["products/tarta-de-manzana.json"] ?? "")).toEqual({
+    expect(readDocument(files, "products/tarta-de-manzana.json")).toEqual({
       sku: "SKU-ITEM-001",
       name: "Tarta de manzana",
       price: 19.99,
@@ -55,7 +72,7 @@ describe("buildSiteFileMap", () => {
       mainImage: "",
       images: [],
     });
-    expect(JSON.parse(files["products/pan-de-centeno.json"] ?? "")).toEqual({
+    expect(readDocument(files, "products/pan-de-centeno.json")).toEqual({
       sku: "SKU-ITEM-001",
       name: "Pan de centeno",
       price: 2.5,
@@ -86,8 +103,9 @@ describe("buildSiteFileMap", () => {
       "categories/sweets.json",
       "categories/cakes.json",
       "categories/drinks.json",
+      ...Object.values(DOCUMENT_SCHEMA_FILES),
     ]);
-    expect(JSON.parse(files["products/coffee-cake.json"] ?? "")).toEqual({
+    expect(readDocument(files, "products/coffee-cake.json")).toEqual({
       sku: "SKU-ITEM-001",
       name: "Coffee cake",
       price: 4,
@@ -121,6 +139,7 @@ describe("buildSiteFileMap", () => {
       "products/dulces/tartas/tarta.json",
       "products/salados/pan.json",
       "products/cafe.json",
+      ...Object.values(DOCUMENT_SCHEMA_FILES),
     ]);
     expect(JSON.parse(files[`${FOLDERS_FILE}.json`] ?? "")).toEqual({
       folders: ["dulces", "dulces/tartas", "salados"],
@@ -143,7 +162,7 @@ describe("buildSiteFileMap", () => {
 
     const files = buildSiteFileMap(config);
 
-    expect(JSON.parse(files["products/bread.json"] ?? "")).toEqual({
+    expect(readDocument(files, "products/bread.json")).toEqual({
       sku: "SKU-ITEM-001",
       name: "Bread",
       price: 0.5,
@@ -174,7 +193,7 @@ describe("buildSiteFileMap", () => {
 
     const files = buildSiteFileMap(config);
 
-    expect(JSON.parse(files["products/tarta.json"] ?? "")).toEqual({
+    expect(readDocument(files, "products/tarta.json")).toEqual({
       sku: "SKU-ITEM-001",
       name: "Tarta",
       price: 19.99,
@@ -207,14 +226,15 @@ describe("buildSiteFileMap", () => {
       "products/bread.json",
       "categories/panes.json",
       "categories/dulces.json",
+      ...Object.values(DOCUMENT_SCHEMA_FILES),
     ]);
-    expect(JSON.parse(files["categories/panes.json"] ?? "")).toEqual({
+    expect(readDocument(files, "categories/panes.json")).toEqual({
       id: "panes",
       name: "Panes",
       description: "Hogazas de fermentación lenta.",
       products: ["bread"],
     });
-    expect(JSON.parse(files["categories/dulces.json"] ?? "")).toEqual({
+    expect(readDocument(files, "categories/dulces.json")).toEqual({
       id: "dulces",
       name: "Dulces",
       products: [],
@@ -235,7 +255,7 @@ describe("buildSiteFileMap", () => {
 
     const files = buildSiteFileMap(config);
 
-    expect(JSON.parse(files["products/apple-pie.json"] ?? "")).toEqual({
+    expect(readDocument(files, "products/apple-pie.json")).toEqual({
       sku: "BAKERY-APPLE-PIE-001",
       name: "Apple pie",
       price: 3.5,
@@ -259,7 +279,7 @@ describe("buildSiteFileMap", () => {
     });
 
     const files = buildSiteFileMap(config);
-    const document = JSON.parse(files["products/bread.json"] ?? "");
+    const document = readDocument(files, "products/bread.json");
 
     expect(document).toEqual({
       sku: "SKU-ITEM-001",
@@ -287,7 +307,49 @@ describe("buildSiteFileMap", () => {
 
     const files = buildSiteFileMap(config);
 
-    expect(Object.keys(files)).toEqual([SITE_FILE, "products/product-1.json"]);
+    expect(Object.keys(files)).toEqual([
+      SITE_FILE,
+      "products/product-1.json",
+      ...Object.values(DOCUMENT_SCHEMA_FILES),
+    ]);
+  });
+
+  it("references the matching schema from every generated document", () => {
+    const config = siteConfigWith({
+      folders: ["dulces"],
+      products: [
+        normalizedProductWith({ name: "Tarta", folder: "dulces" }),
+        normalizedProductWith({ name: "Bread" }),
+      ],
+      categories: [{ name: "Dulces" }],
+    });
+
+    const files = buildSiteFileMap(config);
+
+    expect(JSON.parse(files[SITE_FILE] ?? "").$schema).toBe(
+      "schemas/site.schema.json",
+    );
+    expect(JSON.parse(files["products/dulces/tarta.json"] ?? "").$schema).toBe(
+      "../../schemas/product.schema.json",
+    );
+    expect(JSON.parse(files["products/bread.json"] ?? "").$schema).toBe(
+      "../schemas/product.schema.json",
+    );
+    expect(JSON.parse(files["categories/dulces.json"] ?? "").$schema).toBe(
+      "../schemas/category.schema.json",
+    );
+  });
+
+  it("writes the Zod generated JSON Schemas in every export format", () => {
+    for (const format of exportFormats) {
+      const files = buildSiteFileMap(siteConfigWith(), format);
+      for (const path of Object.values(DOCUMENT_SCHEMA_FILES)) {
+        const schema = JSON.parse(files[path] ?? "");
+        expect(schema.$schema).toContain("json-schema.org");
+        expect(schema.type).toBe("object");
+        expect(Array.isArray(schema.required)).toBe(true);
+      }
+    }
   });
 
   it("serializes every file in a non default format through the registered serializer", () => {
@@ -311,6 +373,7 @@ describe("buildSiteFileMap", () => {
       "folders.yaml",
       "products/dulces/bread.yaml",
       "categories/bread.yaml",
+      ...Object.values(DOCUMENT_SCHEMA_FILES),
     ]);
     expect(files["site.yaml"]).toContain("name: Bakery");
     expect(files["folders.yaml"]).toContain("dulces");

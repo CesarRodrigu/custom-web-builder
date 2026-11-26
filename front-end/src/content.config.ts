@@ -15,9 +15,10 @@ import {
   categorySchema,
   productSchema,
 } from "@custom-web-builder/shared/catalog-schema";
+import { DOCUMENT_EXTENSIONS_GLOB } from "@custom-web-builder/shared/document-format";
 import { toSlug } from "@custom-web-builder/shared/web-metadata";
 
-const PATTERN = "**/*.{json,yaml,yml}";
+const PATTERN = `**/*.${DOCUMENT_EXTENSIONS_GLOB}`;
 const BASE_PATH = "./src/content";
 
 const categoryReference = reference("categories");

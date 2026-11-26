@@ -1,6 +1,6 @@
 {
+  "$schema": "../schemas/category.schema.json",
   "id": "panes",
   "name": "Panes",
-  "description": "Hogazas y barras de fermentación lenta.",
-  "products": ["panes/baguette", "panes/pan-de-masa-madre"]
+  "products": ["pan-de-masa-madre"]
 }

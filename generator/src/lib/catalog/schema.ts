@@ -41,8 +41,11 @@ export {
   isValidFolderPath,
   matches,
   categoryDraftSchema,
+  categoryJsonSchema,
   categorySchema,
   productDraftSchema,
+  productJsonSchema,
+  siteJsonSchema,
   type Category,
   type CategoryDocument,
   type CategoryDraft,
@@ -53,7 +56,6 @@ export {
   type SiteConfigDraft,
   type SiteConfigValidation,
   type SiteMeta,
-  type SiteMetaDraft,
   type StoredDraft,
 } from "@custom-web-builder/shared/catalog-schema";
 

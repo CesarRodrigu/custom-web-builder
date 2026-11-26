@@ -1,0 +1,13 @@
+{
+  "$schema": "../schemas/product.schema.json",
+  "sku": "PANADERIA-CREPE-DE-FRAMBUESA-001",
+  "name": "Crêpe de frambuesa",
+  "price": 8.75,
+  "categories": ["Postres"],
+  "shortDescription": "Crêpe fina con frambuesas frescas.",
+  "longDescription": "Se sirve con azúcar glas y unas gotas de limón.",
+  "stock": 0,
+  "status": "recommended",
+  "mainImage": "https://placehold.co/500x500/svg?text=Cr%C3%AApe+de+frambuesa",
+  "images": ["https://placehold.co/500x500/svg?text=Cr%C3%AApe+de+frambuesa"]
+}

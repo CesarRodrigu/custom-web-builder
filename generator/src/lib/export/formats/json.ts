@@ -1,24 +1,17 @@
 /**
  * JSON export format: the default, human readable and tooling friendly.
  *
- * Serialization is the plain value mapped through `JSON` with two-space
- * pretty printing, so documents stay diffable.
+ * The document contract and its serializer live in the shared workspace
+ * package, so this module only registers the descriptor the editor shows.
  */
-import type { ExportFormat } from "@/lib/export/types";
+import { documentFormats } from "@custom-web-builder/shared/document-format";
 
-/**
- * Serializes one plain value as pretty printed JSON.
- * @param value Value to serialize.
- * @returns The JSON document.
- */
-function serialize(value: unknown): string {
-  return JSON.stringify(value, null, 2);
-}
+import type { ExportFormat } from "@/lib/export/types";
 
 /** JSON format registered in the export registry. */
 export const jsonFormat = {
   id: "json",
   mimeType: "application/zip",
-  fileExtension: "json",
-  serialize,
+  fileExtension: documentFormats.json.extensions[0],
+  serialize: (value: unknown) => documentFormats.json.serialize(value),
 } as const satisfies ExportFormat;

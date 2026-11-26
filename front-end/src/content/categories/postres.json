@@ -1,6 +1,6 @@
 {
+  "$schema": "../schemas/category.schema.json",
   "id": "postres",
   "name": "Postres",
-  "description": "Recetas tradicionales para terminar la comida.",
-  "products": ["postres/flan-de-huevo"]
+  "products": ["tarta-de-manzana", "crepe-de-frambuesa"]
 }

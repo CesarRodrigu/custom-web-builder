@@ -1,6 +1,0 @@
-{
-  "id": "pasteles",
-  "name": "Pasteles",
-  "description": "Tartas para compartir en cualquier celebración.",
-  "products": ["pasteles/tarta-de-chocolate", "pasteles/tarta-de-manzana"]
-}

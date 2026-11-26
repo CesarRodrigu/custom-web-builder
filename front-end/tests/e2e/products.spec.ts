@@ -1,97 +1,128 @@
 import { expect, test } from "@playwright/test";
+import { ProductStatus } from "@custom-web-builder/shared/catalog-schema";
+import { productsPageSize } from "@/config/catalog";
 
-const pages = [
+import {
+  catalogPages,
+  localizedPrice,
+  productCategories,
+  productPage,
+  products,
+  productsPagePath,
+  sortedProducts,
+  statusLabels,
+} from "@tests/e2e/content";
+
+const catalogs = [
   {
-    path: "/es/products/",
-    secondPagePath: "/es/products/page/2/",
+    locale: "es",
     heading: "Nuestros productos",
-    price: /2,40/,
-    recommendedLabel: "Recomendado",
-    notForSaleLabel: "No en venta",
-    stockLabel: "Stock",
     pageLabel: "Página",
     nextLabel: "Siguiente",
     previousLabel: "Anterior",
   },
   {
-    path: "/en/products/",
-    secondPagePath: "/en/products/page/2/",
+    locale: "en",
     heading: "Our products",
-    price: /2\.40/,
-    recommendedLabel: "Recommended",
-    notForSaleLabel: "Not for sale",
-    stockLabel: "In stock",
     pageLabel: "Page",
     nextLabel: "Next",
     previousLabel: "Previous",
   },
-];
+] as const;
 
 for (const {
-  path,
-  secondPagePath,
+  locale,
   heading,
-  price,
-  recommendedLabel,
-  notForSaleLabel,
-  stockLabel,
   pageLabel,
   nextLabel,
   previousLabel,
-} of pages) {
+} of catalogs) {
+  const path = productsPagePath(locale, 1);
+
   test.describe(`products page at ${path}`, () => {
-    test("lists the first page of products exported by the generator", async ({
-      page,
-    }) => {
+    test("lists the exported products on the first page", async ({ page }) => {
       await page.goto(path);
 
       await expect(
         page.getByRole("heading", { level: 1, name: heading }),
       ).toBeVisible();
-      await expect(page.getByTestId("product-card")).toHaveCount(6);
+      await expect(page.getByTestId("product-card")).toHaveCount(
+        Math.min(productsPageSize, products.length),
+      );
     });
 
     test("shows the name, price and category of a product", async ({
       page,
     }) => {
+      const product =
+        products.find((item) => productCategories(item).length > 0) ??
+        products[0];
+      test.skip(!product, "The exported catalog has no products");
+
       await page.goto(path);
 
-      const baguette = page
+      const card = page
         .getByTestId("product-card")
-        .filter({ hasText: "Baguette" });
-
-      await expect(baguette).toContainText("Baguette");
-      await expect(baguette).toContainText(price);
-      await expect(baguette).toContainText("Panes");
+        .filter({ hasText: product.name });
+      await expect(card).toContainText(product.name);
+      await expect(card).toContainText(localizedPrice(product.price, locale));
+      await expect(card).toContainText(productCategories(product)[0].name);
     });
 
     test("lists recommended products before the rest", async ({ page }) => {
+      const displayOrder = sortedProducts(locale);
+      test.skip(displayOrder.length < 2, "The catalog has too few products");
+
       await page.goto(path);
 
       const cards = page.getByTestId("product-card");
-
-      await expect(cards.first()).toContainText("Baguette");
-      await expect(cards.nth(1)).toContainText("Tarta de chocolate");
-      await expect(cards.first().getByTestId("product-status")).toHaveText(
-        recommendedLabel,
-      );
+      for (const [index, product] of displayOrder.slice(0, 2).entries()) {
+        await expect(cards.nth(index)).toContainText(product.name);
+      }
+      if (displayOrder[0].status === ProductStatus.Recommended) {
+        await expect(cards.first().getByTestId("product-status")).toHaveText(
+          statusLabels[locale].recommended,
+        );
+      }
     });
 
     test("shows the status badge and stock of a product", async ({ page }) => {
+      const product =
+        products.find((item) => item.status && item.stock !== undefined) ??
+        products.find((item) => item.stock !== undefined);
+      test.skip(!product, "No exported product declares stock");
+
       await page.goto(path);
 
-      const chocolateCake = page
+      const card = page
         .getByTestId("product-card")
-        .filter({ hasText: "Tarta de chocolate" });
-
-      await expect(chocolateCake.getByTestId("product-status")).toHaveText(
-        recommendedLabel,
+        .filter({ hasText: product.name });
+      if (product.status === ProductStatus.Recommended) {
+        await expect(card.getByTestId("product-status")).toHaveText(
+          statusLabels[locale].recommended,
+        );
+      } else if (product.status === ProductStatus.NotForSale) {
+        await expect(card.getByTestId("product-status")).toHaveText(
+          statusLabels[locale].notForSale,
+        );
+      }
+      await expect(card).toContainText(
+        `${statusLabels[locale].stock}: ${product.stock}`,
       );
-      await expect(chocolateCake).toContainText(stockLabel);
     });
 
     test("paginates the catalog with numbered links", async ({ page }) => {
       await page.goto(path);
+
+      if (catalogPages < 2) {
+        await expect(
+          page.getByRole("link", { name: `${pageLabel} 2` }),
+        ).toHaveCount(0);
+        await expect(page.getByRole("link", { name: nextLabel })).toHaveCount(
+          0,
+        );
+        return;
+      }
 
       const firstPageLink = page.getByRole("link", {
         name: `${pageLabel} 1`,
@@ -105,33 +136,55 @@ for (const {
 
       await secondPageLink.click();
 
-      await expect(page).toHaveURL(new RegExp(`${secondPagePath}$`));
-      await expect(page.getByTestId("product-card")).toHaveCount(1);
+      await expect(page).toHaveURL(
+        new RegExp(`${productsPagePath(locale, 2)}$`),
+      );
+      await expect(page.getByTestId("product-card")).toHaveCount(
+        products.length - productsPageSize,
+      );
       await expect(secondPageLink).toHaveAttribute("aria-current", "page");
       await expect(page.getByRole("link", { name: nextLabel })).toHaveCount(0);
     });
 
-    test("shows the status of a product that is not for sale on the last page", async ({
+    test("shows the status of a product that is not for sale on its page", async ({
       page,
     }) => {
-      await page.goto(secondPagePath);
+      const product = products.find(
+        (item) => item.status === ProductStatus.NotForSale,
+      );
+      await page.goto(
+        product ? productsPagePath(locale, productPage(product, locale)) : path,
+      );
 
-      const flan = page
+      if (!product) {
+        await expect(
+          page.getByText(statusLabels[locale].notForSale),
+        ).toHaveCount(0);
+        return;
+      }
+
+      const card = page
         .getByTestId("product-card")
-        .filter({ hasText: "Flan de huevo" });
-
-      await expect(flan.getByTestId("product-status")).toHaveText(
-        notForSaleLabel,
+        .filter({ hasText: product.name });
+      await expect(card.getByTestId("product-status")).toHaveText(
+        statusLabels[locale].notForSale,
       );
     });
 
     test("navigates back to the first page", async ({ page }) => {
-      await page.goto(secondPagePath);
+      await page.goto(catalogPages > 1 ? productsPagePath(locale, 2) : path);
 
-      await page.getByRole("link", { name: previousLabel }).click();
-
-      await expect(page).toHaveURL(new RegExp(`${path}$`));
-      await expect(page.getByTestId("product-card")).toHaveCount(6);
+      if (catalogPages > 1) {
+        await page.getByRole("link", { name: previousLabel }).click();
+        await expect(page).toHaveURL(new RegExp(`${path}$`));
+      } else {
+        await expect(
+          page.getByRole("link", { name: previousLabel }),
+        ).toHaveCount(0);
+      }
+      await expect(page.getByTestId("product-card")).toHaveCount(
+        Math.min(productsPageSize, products.length),
+      );
     });
   });
 }

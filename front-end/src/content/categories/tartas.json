@@ -1,0 +1,6 @@
+{
+  "$schema": "../schemas/category.schema.json",
+  "id": "tartas",
+  "name": "Tartas",
+  "products": ["tarta-de-manzana"]
+}

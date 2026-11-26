@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./catalog-schema": "./src/catalog-schema/index.ts",
-    "./web-metadata": "./src/web-metadata/index.ts"
+    "./web-metadata": "./src/web-metadata/index.ts",
+    "./document-format": "./src/document-format/index.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -17,8 +18,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "run-p lint format:check",
+    "check:fix": "run-s lint:fix format",
     "check:all": "run-p test check",
     "typecheck": "astro check"
+  },
+  "dependencies": {
+    "js-yaml": "^5.5.0"
   },
   "peerDependencies": {
     "astro": "^7.4.11"

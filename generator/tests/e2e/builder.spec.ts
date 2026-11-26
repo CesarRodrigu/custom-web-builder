@@ -79,11 +79,13 @@ test.describe("configuration editor in Spanish", () => {
       .file("products/tarta-de-manzana.json")
       ?.async("string");
     expect(JSON.parse(siteDocument ?? "")).toEqual({
+      $schema: "schemas/site.schema.json",
       name: "Panadería María",
       description: "",
       contactEmail: "hola@panaderia.com",
     });
     expect(JSON.parse(productDocument ?? "")).toEqual({
+      $schema: "../schemas/product.schema.json",
       sku: "PANADERIA-TARTA-DE-MANZANA-001",
       name: "Tarta de manzana",
       price: 19.99,
@@ -183,8 +185,7 @@ test.describe("configuration editor in Spanish", () => {
     const categoryDocument = await packageZip
       .file("categories/tartas.yaml")
       ?.async("string");
-    // The site name has non ASCII characters, so the serializer quotes it.
-    expect(siteDocument).toContain('name: "Panadería María"');
+    expect(siteDocument).toContain("name: Panadería María");
     expect(categoryDocument).toContain("id: tartas");
     expect(categoryDocument).toContain("products:");
     expect(categoryDocument).toContain("tarta-de-manzana");
@@ -250,6 +251,7 @@ test.describe("configuration editor in Spanish", () => {
       .file("products/tarta-de-manzana.json")
       ?.async("string");
     expect(JSON.parse(categoryDocument ?? "")).toEqual({
+      $schema: "../schemas/category.schema.json",
       id: "postres",
       name: "Postres",
       description: "Tartas para compartir",
@@ -291,6 +293,7 @@ test.describe("configuration editor in Spanish", () => {
           "",
       ),
     ).toEqual({
+      $schema: "../schemas/category.schema.json",
       id: "drinks",
       name: "Drinks",
       description: "Coffee and soft drinks",
@@ -369,6 +372,7 @@ test.describe("configuration editor in Spanish", () => {
       .file("products/tarta-de-manzana.json")
       ?.async("string");
     expect(JSON.parse(productDocument ?? "")).toEqual({
+      $schema: "../schemas/product.schema.json",
       sku: "PANADERIA-TARTA-DE-MANZANA-001",
       name: "Tarta de manzana",
       price: 19.99,
@@ -647,11 +651,13 @@ test.describe("configuration editor in English", () => {
       .file("products/apple-pie.json")
       ?.async("string");
     expect(JSON.parse(siteDocument ?? "")).toEqual({
+      $schema: "schemas/site.schema.json",
       name: "Maria's Bakery",
       description: "",
       contactEmail: "",
     });
     expect(JSON.parse(productDocument ?? "")).toEqual({
+      $schema: "../schemas/product.schema.json",
       sku: "MARIA-APPLE-PIE-001",
       name: "Apple pie",
       price: 12.5,

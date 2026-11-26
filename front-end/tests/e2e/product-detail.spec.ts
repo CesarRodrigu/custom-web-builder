@@ -1,87 +1,114 @@
 import { expect, test } from "@playwright/test";
 
-const pages = [
+import {
+  categoryPath,
+  escapeRegExp,
+  localizedPrice,
+  productCategories,
+  productPath,
+  products,
+  productsPagePath,
+  sortedProducts,
+  statusLabels,
+} from "@tests/e2e/content";
+
+const detailProduct =
+  products.find((product) => product.longDescription) ?? products[0];
+
+const detailPages = [
   {
     locale: "es",
-    path: "/es/products/panes/baguette/",
-    heading: "Baguette",
-    price: /2,40/,
-    category: "Panes",
     backToProducts: "Volver a productos",
-    shortDescription: "Miga ligera y corteza fina, recién horneada.",
-    longDescription: /Elaborada con masa de fermentación lenta/,
-    stockLabel: "Stock",
   },
   {
     locale: "en",
-    path: "/en/products/panes/baguette/",
-    heading: "Baguette",
-    price: /2\.40/,
-    category: "Panes",
     backToProducts: "Back to products",
-    shortDescription: "Miga ligera y corteza fina, recién horneada.",
-    longDescription: /Elaborada con masa de fermentación lenta/,
-    stockLabel: "In stock",
   },
-];
+] as const;
 
-for (const {
-  locale,
-  path,
-  heading,
-  price,
-  category,
-  backToProducts,
-  shortDescription,
-  longDescription,
-  stockLabel,
-} of pages) {
+for (const { locale, backToProducts } of detailPages) {
+  const path = detailProduct
+    ? productPath(detailProduct, locale)
+    : productsPagePath(locale, 1);
+
   test.describe(`product detail page at ${path}`, () => {
     test("shows the exported product details", async ({ page }) => {
+      test.skip(!detailProduct, "The exported catalog has no products");
+
       await page.goto(path);
 
       await expect(
-        page.getByRole("heading", { level: 1, name: heading }),
+        page.getByRole("heading", { level: 1, name: detailProduct.name }),
       ).toBeVisible();
-      await expect(page.getByText(category).first()).toBeVisible();
-      await expect(page.getByText(price)).toBeVisible();
+      await expect(
+        page.getByText(localizedPrice(detailProduct.price, locale)),
+      ).toBeVisible();
+      for (const category of productCategories(detailProduct)) {
+        await expect(
+          page.getByRole("link", { name: category.name }),
+        ).toHaveAttribute("href", categoryPath(category, locale));
+      }
       await expect(
         page.getByRole("link", { name: new RegExp(backToProducts) }),
-      ).toHaveAttribute("href", `/${locale}/products/`);
+      ).toHaveAttribute("href", productsPagePath(locale, 1));
     });
 
-    test("shows the short and long descriptions and the stock", async ({
-      page,
-    }) => {
+    test("shows the exported descriptions and stock", async ({ page }) => {
+      test.skip(!detailProduct, "The exported catalog has no products");
+
       await page.goto(path);
 
-      await expect(page.getByText(shortDescription).first()).toBeVisible();
-      await expect(page.getByText(longDescription).first()).toBeVisible();
-      await expect(page.getByText(stockLabel, { exact: false })).toBeVisible();
+      if (detailProduct.shortDescription) {
+        await expect(
+          page.getByText(detailProduct.shortDescription).first(),
+        ).toBeVisible();
+      }
+      if (detailProduct.longDescription) {
+        await expect(
+          page.getByText(detailProduct.longDescription).first(),
+        ).toBeVisible();
+      }
+      if (detailProduct.stock !== undefined) {
+        await expect(
+          page.getByText(
+            `${statusLabels[locale].stock}: ${detailProduct.stock}`,
+            { exact: false },
+          ),
+        ).toBeVisible();
+      }
     });
 
     test("links back to the localized products page", async ({ page }) => {
+      test.skip(!detailProduct, "The exported catalog has no products");
+
       await page.goto(path);
 
       await page
         .getByRole("link", { name: new RegExp(backToProducts) })
         .click();
 
-      await expect(page).toHaveURL(new RegExp(`/${locale}/products/?$`));
+      await expect(page).toHaveURL(
+        new RegExp(`${productsPagePath(locale, 1)}$`),
+      );
     });
   });
 }
 
 test("opens a product detail page from the products grid", async ({ page }) => {
-  await page.goto("/es/products/");
+  const product = sortedProducts("es")[0];
+  test.skip(!product, "The exported catalog has no products");
+
+  await page.goto(productsPagePath("es", 1));
 
   await page
     .getByTestId("product-link")
-    .filter({ hasText: "Baguette" })
+    .filter({ hasText: product.name })
     .click();
 
-  await expect(page).toHaveURL(/\/es\/products\/panes\/baguette\/?$/);
+  await expect(page).toHaveURL(
+    new RegExp(`${escapeRegExp(productPath(product, "es"))}$`),
+  );
   await expect(
-    page.getByRole("heading", { level: 1, name: "Baguette" }),
+    page.getByRole("heading", { level: 1, name: product.name }),
   ).toBeVisible();
 });

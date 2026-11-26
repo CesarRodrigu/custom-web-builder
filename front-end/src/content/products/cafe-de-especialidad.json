@@ -1,0 +1,10 @@
+{
+  "$schema": "../schemas/product.schema.json",
+  "sku": "CAFE-ESPECIALIDAD-001",
+  "name": "Café de especialidad",
+  "price": 2.2,
+  "categories": ["Bebidas"],
+  "shortDescription": "Café molido de tueste medio.",
+  "mainImage": "https://placehold.co/640x360/jpeg?text=Caf%C3%A9+de+especialidad",
+  "images": ["https://placehold.co/640x360/jpeg?text=Caf%C3%A9+de+especialidad"]
+}
