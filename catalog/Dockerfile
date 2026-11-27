@@ -1,4 +1,4 @@
-FROM maven:3.10.0-amazoncorretto-25-alpine AS build
+FROM maven:3-amazoncorretto-27-alpine AS build
 
 ARG JAR_NAME=catalog-0.0.1-SNAPSHOT.jar
 
