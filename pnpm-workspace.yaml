@@ -2,3 +2,5 @@ packages:
   - generator
   - front-end
   - shared
+update:
+  githubActions: true
