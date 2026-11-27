@@ -1,0 +1,34 @@
+{
+  "name": "custom-web-builder",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "install:all": "pnpm install --frozen-lockfile",
+    "stop": "pnpm -r run astro dev stop && pnpm -r run astro preview stop",
+    "playwright:install": "pnpm --filter generator --filter front-end exec playwright install",
+    "dev:generator": "pnpm --filter generator dev",
+    "dev:frontend": "pnpm --filter front-end dev",
+    "preview:generator": "pnpm --filter generator preview",
+    "preview:frontend": "pnpm --filter front-end preview --host --port 4321 --allowed-hosts host.docker.internal",
+    "build": "pnpm -r --if-present run build",
+    "test": "pnpm -r --if-present run test",
+    "test:unit": "pnpm -r --if-present run test:unit",
+    "test:coverage": "pnpm -r --if-present run test:unit:coverage",
+    "test:e2e": "pnpm --filter generator --filter front-end run test:e2e",
+    "lint": "pnpm -r --if-present run lint",
+    "lint:fix": "pnpm -r --if-present run lint:fix",
+    "format": "pnpm -r --if-present run format",
+    "format:check": "pnpm -r --if-present run format:check",
+    "check": "pnpm -r --if-present run check",
+    "check:fix": "pnpm -r --if-present run check:fix",
+    "check:all": "pnpm -r --if-present run check:all",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "verify": "pnpm build && pnpm check:all",
+    "stack:up": "docker compose up -d",
+    "stack:down": "docker compose down",
+    "stack:logs": "docker compose logs -f"
+  }
+}

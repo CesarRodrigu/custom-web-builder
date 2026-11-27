@@ -1,0 +1,6 @@
+{
+  "$schema": "../schemas/category.schema.json",
+  "id": "bebidas",
+  "name": "Bebidas",
+  "products": ["cafe-de-especialidad"]
+}

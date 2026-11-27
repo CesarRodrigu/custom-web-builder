@@ -1,0 +1,49 @@
+---
+import Products, { type ProductsTexts } from "@/components/Products.astro";
+import { site } from "@/config/site-content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import type { CatalogProduct } from "@/lib/catalog";
+import { getProductsPageStaticPaths } from "@/lib/content";
+import type { GetStaticPathsOptions, GetStaticPathsResult, Page } from "astro";
+
+const texts: ProductsTexts = {
+  pageTitle: "Products",
+  navHome: "Home",
+  navProducts: "Products",
+  navCategories: "Categories",
+  eyebrow: "Full catalog",
+  heading: "Our products",
+  intro: "Every product in the catalog, organized by category.",
+  empty: "There are no products in the catalog yet.",
+  statusRecommended: "Recommended",
+  statusNotForSale: "Not for sale",
+  stockLabel: "In stock",
+  paginationLabel: "Pagination",
+  paginationPrevious: "Previous",
+  paginationNext: "Next",
+  paginationPage: "Page",
+  footerContact: "Contact",
+  footerRights: "All rights reserved.",
+};
+
+export const getStaticPaths = async ({
+  paginate,
+}: GetStaticPathsOptions): Promise<GetStaticPathsResult> =>
+  await getProductsPageStaticPaths("en", paginate);
+
+interface Props {
+  page: Page<CatalogProduct>;
+}
+
+const { page } = Astro.props;
+---
+
+<BaseLayout
+  title={texts.pageTitle}
+  description={texts.intro}
+  siteName={site.name}
+  contactEmail={site.contactEmail}
+  layout={texts}
+>
+  <Products texts={texts} page={page} />
+</BaseLayout>

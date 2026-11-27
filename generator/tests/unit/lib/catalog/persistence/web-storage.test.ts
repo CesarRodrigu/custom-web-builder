@@ -4,12 +4,7 @@ import {
   DRAFT_STORAGE_KEY,
   createWebStorageDraftPersistence,
 } from "@/lib/catalog/persistence/web-storage";
-import {
-  draftWith,
-  productWith,
-  storedDraftWith,
-  storedProductWith,
-} from "@tests/unit/helpers/fixtures";
+import { draftWith, productWith } from "@tests/unit/helpers/fixtures";
 
 /** Storage methods the web storage adapter relies on. */
 type FakeStorage = Pick<Storage, "getItem" | "setItem">;
@@ -36,8 +31,8 @@ describe("createWebStorageDraftPersistence", () => {
       products: [
         productWith({
           name: "Tarta de manzana",
-          categories: ["Dulces/Tartas"],
-          price: "19,99",
+          categories: ["Tartas"],
+          price: 19.99,
         }),
       ],
     });
@@ -48,44 +43,27 @@ describe("createWebStorageDraftPersistence", () => {
     await expect(persistence.load()).resolves.toEqual(draft);
   });
 
-  it("fills in the ids missing in a draft stored before ids existed", async () => {
-    const legacy = storedDraftWith([
-      storedProductWith({ name: "Tarta", price: "5" }),
-      storedProductWith({
-        name: "Pan",
-        categories: ["Salados"],
-        price: "2",
-      }),
-    ]);
-    const persistence = createWebStorageDraftPersistence(
-      createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(legacy) }),
-    );
-
-    await expect(persistence.load()).resolves.toEqual({
-      ...legacy,
-      products: [
-        { ...legacy.products[0], id: 1 },
-        { ...legacy.products[1], id: 2 },
-      ],
+  it("keeps a SKU typed by the user across a reload", async () => {
+    const draft = draftWith({
+      products: [productWith({ name: "Tarta", sku: "MI-CODIGO-007" })],
     });
+    const persistence = createWebStorageDraftPersistence(createFakeStorage());
+
+    await persistence.save(draft);
+
+    await expect(persistence.load()).resolves.toEqual(draft);
   });
 
-  it("keeps the stored ids and assigns the missing ones above the highest", async () => {
-    const mixed = storedDraftWith([
-      productWith({ id: 5, name: "Tarta", price: "5" }),
-      storedProductWith({ name: "Pan", price: "2" }),
-    ]);
-    const persistence = createWebStorageDraftPersistence(
-      createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(mixed) }),
-    );
-
-    await expect(persistence.load()).resolves.toEqual({
-      ...mixed,
-      products: [
-        { ...mixed.products[0], id: 5 },
-        { ...mixed.products[1], id: 6 },
-      ],
+  it("keeps an unfinished draft without applying the editing rules", async () => {
+    const draft = draftWith({
+      site: { name: "", contactEmail: "not-an-email" },
+      products: [productWith({ name: "", price: -1 })],
     });
+    const persistence = createWebStorageDraftPersistence(createFakeStorage());
+
+    await persistence.save(draft);
+
+    await expect(persistence.load()).resolves.toEqual(draft);
   });
 
   it("returns nothing when the storage is unavailable", async () => {
@@ -113,6 +91,20 @@ describe("createWebStorageDraftPersistence", () => {
     );
 
     await expect(persistence.load()).resolves.toBeUndefined();
+  });
+
+  it("completes a stored product missing a current field", async () => {
+    const stale = draftWith({
+      products: [productWith({ mainImage: undefined })],
+    });
+    const persistence = createWebStorageDraftPersistence(
+      createFakeStorage({ [DRAFT_STORAGE_KEY]: JSON.stringify(stale) }),
+    );
+
+    const loaded = await persistence.load();
+
+    expect(loaded?.products[0]?.name).toBe(stale.products[0]?.name);
+    expect(loaded?.products[0]?.mainImage).toBe("");
   });
 
   it("drops stale keys of stored contents that otherwise fit the draft shape", async () => {

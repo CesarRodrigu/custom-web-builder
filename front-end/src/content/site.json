@@ -1,0 +1,6 @@
+{
+  "$schema": "schemas/site.schema.json",
+  "name": "Panadería María",
+  "description": "",
+  "contactEmail": "hola@panaderia.com"
+}

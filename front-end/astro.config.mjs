@@ -35,6 +35,7 @@ export default defineConfig({
         defaultLocale,
         locales: hreflangCodes,
       },
+      xslURL: "/sitemap.xsl",
     }),
   ],
 

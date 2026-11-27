@@ -2,15 +2,13 @@
  * Sidebar of the configuration editor: the site name header and the
  * configuration package rendered as a collapsible file tree, mirroring what
  * the ZIP export contains and jumping to the page behind each file row. The
- * products folder carries the add product action and every product row a
- * delete action revealed on hover.
+ * products folder carries the add product and add folder actions, every user
+ * folder can get a subfolder or be deleted, and product files can be dragged
+ * onto a folder to move them.
  */
-import type { ReactNode } from "react";
-import { PackageOpen, Plus, Trash2 } from "lucide-react";
+import { PackageOpen } from "lucide-react";
 import TreeViewNode from "@/features/builder/layout/TreeViewNode";
 import type { BuilderTexts } from "@/features/builder/builder-texts";
-import RemoveProductButton from "@/features/builder/components/RemoveProductButton";
-import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyMedia } from "@/components/ui/empty";
 import {
   Sidebar,
@@ -21,7 +19,6 @@ import {
 } from "@/components/ui/sidebar";
 import { siteName } from "@/config/site";
 import { FileTreeNodeType, type FileTreeNode } from "@/lib/catalog/tree";
-import { PRODUCTS_FOLDER } from "@/lib/export/package";
 
 /** Props of the editor sidebar. */
 interface EditorSidebarProps {
@@ -33,23 +30,35 @@ interface EditorSidebarProps {
   hasProducts: boolean;
   /** Catalog position of the product the current section shows, or `undefined` when a product is not selected. */
   selectedProductIndex: number | undefined;
+  /** Position of the category the current section shows, or `undefined` when no category is selected. */
+  selectedCategoryIndex: number | undefined;
   /** Whether the site configuration has any validation error. */
   siteHasError: boolean;
   /** Catalog positions of the products with at least one validation error. */
   productsWithErrors: ReadonlySet<number>;
+  /** Positions of the categories with at least one field with an error. */
+  categoriesWithErrors: ReadonlySet<number>;
   /** Called with the node when the user selects a file tree row. */
   onSelectFileNode: (node: FileTreeNode) => void;
-  /** Called when the user requests one more empty product. */
-  onAddProduct: () => void;
+  /** Called with the relative folder path when the user adds a product to a folder. */
+  onAddProduct: (folderPath: string) => void;
+  /** Called when the user adds a category from the categories folder. */
+  onAddCategory: () => void;
   /** Called when the user deletes one product from its file tree row. */
   onDeleteProduct: (productIndex: number) => void;
+  /** Called when the user deletes one category from its file tree row. */
+  onDeleteCategory: (categoryIndex: number) => void;
+  /** Called with the parent path and the typed name when a folder is created. */
+  onAddFolder: (parentPath: string, name: string) => void;
+  /** Called with the folder path when a user created folder is deleted. */
+  onDeleteFolder: (folderPath: string) => void;
+  /** Called with the product id and the target path when a product is dropped. */
+  onMoveProduct: (productId: number, folderPath: string) => void;
 }
 
 /**
- * Renders the editor sidebar: the site name and the file tree of the
- * configuration package, with the add product action on the products folder,
- * the delete action on each product row and an empty state message while the
- * catalog has no products.
+ * Renders the editor sidebar: the site name, the file tree with all its row
+ * actions and an empty state message while the catalog has no products.
  * @param props Sidebar settings and the callbacks it needs.
  * @returns The sidebar markup.
  */
@@ -59,57 +68,19 @@ export function EditorSidebar(props: Readonly<EditorSidebarProps>) {
     fileTree,
     hasProducts,
     selectedProductIndex,
+    selectedCategoryIndex,
     siteHasError,
     productsWithErrors,
+    categoriesWithErrors,
     onSelectFileNode,
     onAddProduct,
+    onAddCategory,
     onDeleteProduct,
+    onDeleteCategory,
+    onAddFolder,
+    onDeleteFolder,
+    onMoveProduct,
   } = props;
-
-  /**
-   * Builds the trailing action of one tree row: the add product button on
-   * the products folder, the remove product confirmation on each product
-   * file, and nothing on the site file or the category folders.
-   * @param node Row being rendered.
-   * @returns The row action, when the row has one.
-   */
-  function renderRowAction(node: FileTreeNode): ReactNode {
-    if (node.type === FileTreeNodeType.File) {
-      const productIndex = node.productIndex;
-      if (productIndex === undefined) return undefined;
-      return (
-        <RemoveProductButton
-          texts={texts}
-          onRemove={() => onDeleteProduct(productIndex)}
-          trigger={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              title={texts.deleteProduct}
-              className="text-destructive opacity-0 transition-opacity group-hover/file-row:opacity-100 group-focus-within/file-row:opacity-100 hover:text-destructive"
-            >
-              <Trash2 />
-              <span className="sr-only">{texts.deleteProduct}</span>
-            </Button>
-          }
-        />
-      );
-    }
-    if (node.path !== PRODUCTS_FOLDER) return undefined;
-    return (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        title={texts.addProduct}
-        onClick={onAddProduct}
-      >
-        <Plus />
-        <span className="sr-only">{texts.addProduct}</span>
-      </Button>
-    );
-  }
 
   return (
     <Sidebar>
@@ -130,10 +101,19 @@ export function EditorSidebar(props: Readonly<EditorSidebarProps>) {
                   }
                   node={node}
                   selectedProductIndex={selectedProductIndex}
+                  selectedCategoryIndex={selectedCategoryIndex}
                   onSelect={onSelectFileNode}
                   siteHasError={siteHasError}
                   productsWithErrors={productsWithErrors}
-                  renderRowAction={renderRowAction}
+                  categoriesWithErrors={categoriesWithErrors}
+                  texts={texts}
+                  onAddProduct={onAddProduct}
+                  onAddCategory={onAddCategory}
+                  onDeleteProduct={onDeleteProduct}
+                  onDeleteCategory={onDeleteCategory}
+                  onAddFolder={onAddFolder}
+                  onDeleteFolder={onDeleteFolder}
+                  onMoveProduct={onMoveProduct}
                 />
               ))}
             </div>
@@ -146,6 +126,11 @@ export function EditorSidebar(props: Readonly<EditorSidebarProps>) {
                   {texts.sidebarProductsEmpty}
                 </EmptyDescription>
               </Empty>
+            )}
+            {hasProducts && (
+              <p className="px-2 pt-2 text-xs text-muted-foreground">
+                {texts.sidebarDragHint}
+              </p>
             )}
           </SidebarGroupContent>
         </SidebarGroup>

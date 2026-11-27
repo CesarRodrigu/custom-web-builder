@@ -4,8 +4,8 @@
  * The archive is always a ZIP regardless of the inner file format, so the
  * name does not depend on the selected export format at all.
  */
-import { toSlug } from "@/lib/metadata";
 import type { SiteConfig } from "@/lib/catalog/schema";
+import { toSlug } from "@custom-web-builder/shared/web-metadata";
 
 /**
  * Builds the file name of the exported archive: a stable, slug based name.

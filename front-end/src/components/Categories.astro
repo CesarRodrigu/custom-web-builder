@@ -1,0 +1,133 @@
+---
+import { BreadcrumbTrail } from "@/components/BreadcrumbTrail";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { defaultLocale, type SiteLayoutTexts } from "@/config/site";
+import {
+  getCategoryCoverImage,
+  sortCategoriesByName,
+  type CatalogCategory,
+} from "@/lib/category";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+/**
+ * Localized strings for the categories index page.
+ *
+ * Exported so every locale page can type its `texts` object and get the same
+ * compile-time check; the object literal is the only thing that differs
+ * between locales.
+ */
+export interface CategoriesTexts extends SiteLayoutTexts {
+  /** Human-readable page title, used for `<title>` and the meta description. */
+  pageTitle: string;
+  /** Small badge shown above the page heading. */
+  eyebrow: string;
+  /** Main heading of the page. */
+  heading: string;
+  /** Supporting text shown under the heading. */
+  intro: string;
+  /** Message shown when the exported catalog has no categories. */
+  empty: string;
+  /** Product count label used when a category has exactly one product. */
+  productCountOne: string;
+  /** Product count label used for any other number of products. */
+  productCountOther: string;
+}
+
+interface Props {
+  /** Localized strings of the page. */
+  texts: CategoriesTexts;
+  /** Categories exported by the generator. */
+  categories: CatalogCategory[];
+}
+
+const { texts, categories } = Astro.props;
+const locale = Astro.currentLocale ?? defaultLocale;
+const sortedCategories = sortCategoriesByName(categories, locale);
+const breadcrumbItems = [
+  {
+    label: texts.navHome,
+    href: getRelativeLocaleUrl(locale, "/"),
+  },
+  { label: texts.navCategories },
+];
+---
+
+<main class="min-h-[60vh]">
+  <section class="mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+    <BreadcrumbTrail items={breadcrumbItems} />
+
+    <header class="mt-8 flex flex-col gap-3">
+      <Badge variant="secondary">{texts.eyebrow}</Badge>
+      <h1 class="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
+        {texts.heading}
+      </h1>
+      <p class="max-w-2xl text-muted-foreground">{texts.intro}</p>
+    </header>
+    <Separator className="mt-8" />
+
+    {sortedCategories.length === 0 ? (
+      <p class="py-16 text-center text-muted-foreground">{texts.empty}</p>
+    ) : (
+      <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {sortedCategories.map((category) => {
+          const cover = getCategoryCoverImage(category);
+          const countLabel =
+            category.products.length === 1
+              ? texts.productCountOne
+              : texts.productCountOther;
+
+          return (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(
+                  locale,
+                  `/categories/${category.id}`,
+                )}
+                class="block h-full rounded-xl transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+              >
+                <Card className="h-full" data-testid="category-card">
+                  {cover ? (
+                    <img
+                      src={cover}
+                      alt=""
+                      loading="lazy"
+                      class="aspect-3/2 w-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      class="flex aspect-3/2 w-full items-center justify-center bg-linear-to-br from-muted to-secondary"
+                      aria-hidden="true"
+                    >
+                      <span class="font-heading text-5xl font-semibold text-muted-foreground">
+                        {category.name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle>{category.name}</CardTitle>
+                    {category.description && (
+                      <CardDescription>{category.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent className="mt-auto">
+                    <Badge variant="secondary">
+                      {`${category.products.length} ${countLabel}`}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </section>
+</main>

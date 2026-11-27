@@ -1,0 +1,89 @@
+---
+import ProductStatusBadge from "@/components/ProductStatusBadge.astro";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import type { ProductTexts } from "@/config/catalog";
+import {
+  formatPrice,
+  getProductImages,
+  toCategoryLabel,
+  type CatalogProduct,
+} from "@/lib/catalog";
+import { getRelativeLocaleUrl } from "astro:i18n";
+
+interface Props {
+  /** Product to render. */
+  product: CatalogProduct;
+  /** Locale used to format the price and to build the detail link. */
+  locale: string;
+  /** Localized labels of the product statuses and the stock line. */
+  texts: ProductTexts;
+}
+
+const { product, locale, texts } = Astro.props;
+const categories =
+  product.categoryNames && product.categoryNames.length > 0
+    ? [...new Set(product.categoryNames)]
+    : [...new Set(product.categories.flat().map(toCategoryLabel))];
+const [image] = getProductImages(product);
+const detailHref = getRelativeLocaleUrl(locale, `/products/${product.id}`);
+---
+
+<a
+  href={detailHref}
+  class="block h-full rounded-xl transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+  data-testid="product-link"
+>
+  <Card className="h-full" data-testid="product-card">
+    {image ? (
+      <img
+        src={image}
+        alt={product.name}
+        loading="lazy"
+        class="aspect-3/2 w-full object-cover"
+      />
+    ) : (
+      <div
+        class="flex aspect-3/2 w-full items-center justify-center bg-linear-to-br from-muted to-secondary"
+        aria-hidden="true"
+      >
+        <span class="font-heading text-5xl font-semibold text-muted-foreground">
+          {product.name.charAt(0)}
+        </span>
+      </div>
+    )}
+    <CardHeader>
+      <div class="flex flex-wrap items-start justify-between gap-2">
+        <CardTitle>{product.name}</CardTitle>
+        <ProductStatusBadge status={product.status} texts={texts} />
+      </div>
+      {product.shortDescription && (
+        <CardDescription>{product.shortDescription}</CardDescription>
+      )}
+    </CardHeader>
+    {categories.length > 0 && (
+      <CardContent className="flex flex-wrap gap-1.5">
+        {categories.map((category) => (
+          <Badge variant="secondary">{category}</Badge>
+        ))}
+      </CardContent>
+    )}
+    <CardFooter className="mt-auto justify-between gap-3">
+      <span class="font-heading text-lg font-semibold">
+        {formatPrice(product.price, locale)}
+      </span>
+      {product.stock !== undefined && (
+        <span class="text-xs text-muted-foreground">
+          {texts.stockLabel}: {product.stock}
+        </span>
+      )}
+    </CardFooter>
+  </Card>
+</a>

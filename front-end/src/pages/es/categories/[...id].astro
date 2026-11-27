@@ -1,0 +1,39 @@
+---
+import Category, { type CategoryTexts } from "@/components/Category.astro";
+import { site } from "@/config/site-content";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import type { CatalogCategory } from "@/lib/category";
+import { getCategoryStaticPaths } from "@/lib/content";
+
+const texts: CategoryTexts = {
+  navHome: "Inicio",
+  navProducts: "Productos",
+  navCategories: "Categorías",
+  eyebrow: "Categoría",
+  empty: "Todavía no hay productos en esta categoría.",
+  backToProducts: "Volver a productos",
+  statusRecommended: "Recomendado",
+  statusNotForSale: "No en venta",
+  stockLabel: "Stock",
+  footerContact: "Contacto",
+  footerRights: "Todos los derechos reservados.",
+};
+
+export const getStaticPaths = getCategoryStaticPaths;
+
+interface Props {
+  category: CatalogCategory;
+}
+
+const { category } = Astro.props;
+---
+
+<BaseLayout
+  title={category.name}
+  description={category.description ?? site.description}
+  siteName={site.name}
+  contactEmail={site.contactEmail}
+  layout={texts}
+>
+  <Category texts={texts} category={category} />
+</BaseLayout>

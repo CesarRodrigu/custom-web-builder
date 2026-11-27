@@ -7,73 +7,91 @@
  * degrades into "there was nothing stored" without ever reaching the editing
  * flow.
  *
- * The trust boundary is a purely structural Zod schema: the draft being
- * edited may be half filled, so the schema only checks that every field is
- * the text-like shape the editor reads back, never that the draft satisfies
- * the semantic rules of the formal schema (that is `siteConfigDraftSchema`
- * in `lib/catalog/schema.ts`, applied while editing, not while storing).
- * The structural check accepts products without an id — the shape stored
- * before ids existed — and the load fills the missing ids in, so older
- * drafts upgrade in place instead of being discarded.
+ * The structural Zod schema and the storage key are defined once in the shared
+ * catalog model. That schema is the partial of the rule-free shapes, so any
+ * field may be absent; the load completes the missing values before the draft
+ * reaches the editor.
  */
-import { z } from "astro/zod";
-
-import type { SiteConfigDraft } from "@/lib/catalog/schema";
+import {
+  BLANK_PRICE,
+  buildDefaultSku,
+  type SiteConfigDraft,
+} from "@/lib/catalog/schema";
 import type { DraftPersistence } from "@/lib/catalog/persistence/types";
+import {
+  DRAFT_STORAGE_KEY,
+  storedDraftSchema,
+  type StoredDraft,
+} from "@custom-web-builder/shared/catalog-schema";
 
-/** localStorage key under which the editor draft is persisted. */
-export const DRAFT_STORAGE_KEY = "custom-web-builder:draft";
+export { DRAFT_STORAGE_KEY } from "@custom-web-builder/shared/catalog-schema";
 
 /** The Storage subset the adapter uses; `null` when there is no backing document. */
 type WebStorage = Pick<Storage, "getItem" | "setItem"> | null;
 
 /**
- * Zod schema of the stored draft content: the structural shape of
- * `SiteConfigDraft`. Product ids are optional here because drafts stored
- * before ids existed are still valid input; {@link withStoredProductIds}
- * turns the parsed document into a full `SiteConfigDraft`, so a schema drift
- * away from the formal draft still stops compiling at that mapper.
+ * Completes a stored draft so the editor receives a full `SiteConfigDraft`.
+ * Missing texts load blank, missing lists load empty and missing ids are
+ * assigned above the highest one found. A missing SKU is generated from the
+ * site and product names, avoiding every SKU already present.
+ * @param stored Draft read from storage; any field may be absent.
+ * @returns The draft with every current field present.
  */
-const storedDraftSchema = z.object({
-  site: z.object({
-    name: z.string(),
-    description: z.string(),
-    contactEmail: z.string(),
-  }),
-  products: z.array(
-    z.object({
-      id: z.number().int().positive().optional(),
-      name: z.string(),
-      categories: z.array(z.string()),
-      description: z.string(),
-      price: z.string(),
-      imageUrl: z.string(),
-    }),
-  ),
-});
-
-/** Document the structural schema reads back, with optional product ids. */
-type StoredDraft = z.infer<typeof storedDraftSchema>;
-
-/**
- * Completes a stored draft so every product carries an id: ids already
- * stored are kept, and products without one (drafts saved before ids
- * existed) receive the next ids above the highest one found, so no id is
- * ever reused.
- * @param stored Draft read from the storage, with optional product ids.
- * @returns The same draft with every product carrying a valid id.
- */
-function withStoredProductIds(stored: StoredDraft): SiteConfigDraft {
-  let nextId = stored.products.reduce(
+function withCompleteDraft(stored: StoredDraft): SiteConfigDraft {
+  const storedProducts = stored.products ?? [];
+  const storedCategories = stored.categories ?? [];
+  let nextId = storedProducts.reduce(
     (max, product) => Math.max(max, product.id ?? 0),
     0,
   );
-  return {
-    site: stored.site,
-    products: stored.products.map((product) => ({
+
+  const taken = new Set<string>();
+  for (const product of storedProducts) {
+    const sku = product.sku?.trim().toUpperCase();
+    if (sku) taken.add(sku);
+  }
+
+  const products = storedProducts.map((product) => {
+    const storedSku = product.sku?.trim().toUpperCase() ?? "";
+    const hasSku = storedSku !== "";
+    const sku = hasSku
+      ? storedSku
+      : buildDefaultSku(stored.site?.name ?? "", product.name ?? "", taken);
+    taken.add(sku);
+    return {
       ...product,
+      sku,
+      skuAuto: product.skuAuto ?? !hasSku,
+      name: product.name ?? "",
+      price: product.price ?? BLANK_PRICE,
+      categories: product.categories ?? [],
+      folder: product.folder ?? "",
+      shortDescription: product.shortDescription ?? "",
+      mainImage: product.mainImage ?? "",
+      images: product.images ?? [],
       id: product.id ?? ++nextId,
-    })),
+    };
+  });
+
+  let nextCategoryId = storedCategories.reduce(
+    (max, category) => Math.max(max, category.id ?? 0),
+    0,
+  );
+  const categories = storedCategories.map((category) => ({
+    id: category.id ?? ++nextCategoryId,
+    name: category.name ?? "",
+    description: category.description ?? "",
+  }));
+
+  return {
+    site: {
+      name: stored.site?.name ?? "",
+      description: stored.site?.description ?? "",
+      contactEmail: stored.site?.contactEmail ?? "",
+    },
+    folders: stored.folders ?? [],
+    products,
+    categories,
   };
 }
 
@@ -106,7 +124,7 @@ export function createWebStorageDraftPersistence(
 
     try {
       const result = storedDraftSchema.safeParse(JSON.parse(raw));
-      return result.success ? withStoredProductIds(result.data) : undefined;
+      return result.success ? withCompleteDraft(result.data) : undefined;
     } catch {
       return undefined;
     }

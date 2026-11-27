@@ -1,11 +1,36 @@
 ---
-import Home from "@/components/Home.astro";
+import Home, { type HomeTexts } from "@/components/Home.astro";
+import { site } from "@/config/site-content";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { loadProducts } from "@/lib/content";
 
+const texts: HomeTexts = {
+  pageTitle: "Página de inicio",
+  navHome: "Inicio",
+  navProducts: "Productos",
+  navCategories: "Categorías",
+  heroBadge: "Catálogo artesanal",
+  catalogCta: "Ver productos",
+  contactCta: "Contactar",
+  featuredTitle: "Productos destacados",
+  featuredDescription: "Una selección de nuestros productos más recientes.",
+  viewAll: "Ver todo el catálogo",
+  statusRecommended: "Recomendado",
+  statusNotForSale: "No en venta",
+  stockLabel: "Stock",
+  footerContact: "Contacto",
+  footerRights: "Todos los derechos reservados.",
+};
 
+const products = await loadProducts();
 ---
 
 <BaseLayout
+  title={texts.pageTitle}
+  description={site.description}
+  siteName={site.name}
+  contactEmail={site.contactEmail}
+  layout={texts}
 >
-  <Home />
+  <Home texts={texts} site={site} products={products} />
 </BaseLayout>

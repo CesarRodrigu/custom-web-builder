@@ -1,0 +1,6 @@
+{
+  "$schema": "../schemas/category.schema.json",
+  "id": "panes",
+  "name": "Panes",
+  "products": ["pan-de-masa-madre"]
+}

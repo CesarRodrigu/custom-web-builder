@@ -1,0 +1,29 @@
+---
+import { Badge } from "@/components/ui/badge";
+import type { ProductTexts } from "@/config/catalog";
+import { ProductStatus } from "@custom-web-builder/shared/catalog-schema";
+
+interface Props {
+  /** Status declared by the product, when it has one. */
+  status?: ProductStatus;
+  /** Localized labels of every product status. */
+  texts: Pick<ProductTexts, "statusRecommended" | "statusNotForSale">;
+}
+
+const { status, texts } = Astro.props;
+
+const labels: Record<ProductStatus, string> = {
+  [ProductStatus.Recommended]: texts.statusRecommended,
+  [ProductStatus.NotForSale]: texts.statusNotForSale,
+};
+const variants: Record<ProductStatus, "default" | "destructive"> = {
+  [ProductStatus.Recommended]: "default",
+  [ProductStatus.NotForSale]: "destructive",
+};
+---
+
+{status && (
+  <Badge variant={variants[status]} data-testid="product-status">
+    {labels[status]}
+  </Badge>
+)}

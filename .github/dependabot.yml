@@ -29,9 +29,7 @@ updates:
           - "*"
 
   - package-ecosystem: "npm"
-    directories:
-      - "/generator"
-      - "/front-end"
+    directory: "/"
     schedule:
       interval: "monthly"
       time: "07:00"

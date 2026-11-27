@@ -1,12 +1,41 @@
 ---
-
+import { siteName as defaultSiteName } from "@/config/site-content";
+import {
+  defaultLocale,
+  type Locale,
+  type SiteLayoutTexts,
+} from "@/config/site";
 import { DARK_THEME_CLASS, THEME_STORAGE_KEY, Theme } from "@/config/theme";
-
+import Head from "@/components/Head.astro";
+import SiteFooter from "@/components/SiteFooter.astro";
+import SiteHeader from "@/components/SiteHeader.astro";
 import "@/styles/global.css";
 
+interface Props {
+  /** Title of the page, without the site name. */
+  title?: string;
+  /** Meta description of the page; one derived from the title is used when omitted. */
+  description?: string;
+  /** Language of the page content; the locale of the current route is used when omitted. */
+  lang?: Locale;
+  /** Display name of the site; the configured default is used when omitted. */
+  siteName?: string;
+  /** Contact email shown in the footer, when provided. */
+  contactEmail?: string;
+  /** Localized labels rendered by the header and footer of the layout. */
+  layout: SiteLayoutTexts;
+}
 
-
-
+const {
+  title,
+  description,
+  lang,
+  siteName = defaultSiteName,
+  contactEmail,
+  layout,
+} = Astro.props;
+const routeLocale = Astro.currentLocale as Locale | undefined;
+const documentLang = lang ?? routeLocale ?? defaultLocale;
 ---
 
 <script define:vars={{ Theme, THEME_STORAGE_KEY, DARK_THEME_CLASS }} is:inline>
@@ -41,11 +70,23 @@ import "@/styles/global.css";
     });
   }
 </script>
-<!doctype html>
-<html>
+<html lang={documentLang}>
   <head>
+    <Head title={title} description={description} siteName={siteName} />
   </head>
   <body>
+    <SiteHeader
+      siteName={siteName}
+      homeLabel={layout.navHome}
+      productsLabel={layout.navProducts}
+      categoriesLabel={layout.navCategories}
+    />
     <slot />
+    <SiteFooter
+      siteName={siteName}
+      contactEmail={contactEmail}
+      contactLabel={layout.footerContact}
+      rightsLabel={layout.footerRights}
+    />
   </body>
 </html>

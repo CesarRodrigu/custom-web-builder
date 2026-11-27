@@ -74,7 +74,7 @@ export function CategoryField(props: Readonly<CategoryFieldProps>) {
     () =>
       customCategoryPath === undefined
         ? suggestions
-        : [...suggestions, customCategoryPath],
+        : [customCategoryPath, ...suggestions],
     [suggestions, customCategoryPath],
   );
 

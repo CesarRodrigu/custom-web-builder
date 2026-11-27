@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/product.schema.json",
+  "sku": "PANADERIA-TARTA-DE-MANZANA-001",
+  "name": "Tarta de manzana",
+  "price": 19.99,
+  "categories": ["Tartas", "Postres"],
+  "shortDescription": "Tarta casera de manzana con canela.",
+  "longDescription": "Elaborada con manzanas de temporada sobre una base de masa quebrada.",
+  "stock": 12,
+  "status": "recommended",
+  "mainImage": "https://placehold.co/600x400/png?text=Tarta+de+manzana",
+  "images": [
+    "https://placehold.co/600x400/png?text=Tarta+de+manzana",
+    "https://placehold.co/1200x800/jpg?text=Tarta+de+manzana+-+detalle"
+  ]
+}
